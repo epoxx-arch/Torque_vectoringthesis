@@ -21,8 +21,8 @@ for i in range(200):
 
     X_boruto = pd.concat([data_cleaned, X_shadow], axis=1)
 
-    mdl = RandomForestRegressor(max_depth=6)
-    mdl.fit(X_boruto, FyFL)
+    mdl = RandomForestRegressor(max_depth=5)
+    mdl.fit(X_boruto, FyRL)
     feature_imp_x = mdl.feature_importances_[:len(data_cleaned.columns)]
     feature_imp_shuffled = mdl.feature_importances_[len(data_cleaned.columns):]
     hints1 += (feature_imp_x > feature_imp_shuffled.max())
@@ -31,5 +31,5 @@ for i in range(200):
 
 usable_data1 = pd.DataFrame(hints1,index=data_cleaned.columns)
 
-with pd.ExcelWriter('FxFL.xlsx', engine="xlsxwriter") as writer:
+with pd.ExcelWriter('FxRL.xlsx', engine="xlsxwriter") as writer:
             usable_data1.to_excel(writer, sheet_name="variables")

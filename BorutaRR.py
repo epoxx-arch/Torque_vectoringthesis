@@ -21,7 +21,7 @@ for i in range(200):
 
     X_boruto = pd.concat([data_cleaned, X_shadow], axis=1)
 
-    mdl = RandomForestRegressor(max_depth=6)
+    mdl = RandomForestRegressor(max_depth=5)
     mdl.fit(X_boruto, FyRR)
     feature_imp_x = mdl.feature_importances_[:len(data_cleaned.columns)]
     feature_imp_shuffled = mdl.feature_importances_[len(data_cleaned.columns):]
