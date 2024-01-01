@@ -32,5 +32,5 @@ for i in range(200):
     print(f"iteratiom {i}, duration time {start-end :.5f} sec")
 
 usable_data1 = pd.DataFrame({'hints': hints1},{'importances':sum_importances},index=data_cleaned.columns)
-with pd.ExcelWriter('FxFL.xlsx', engine="xlsxwriter") as writer:
+with pd.ExcelWriter('Data/FxFL.xlsx', engine="xlsxwriter") as writer:
             usable_data1.to_excel(writer, sheet_name="variables")
