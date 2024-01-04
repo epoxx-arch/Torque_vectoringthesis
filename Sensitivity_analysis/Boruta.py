@@ -10,13 +10,13 @@ if __name__ == "__main__":
     try:
         ## parser setting
         parser =argparse.ArgumentParser(description="parameter setting")
-        parser.add_argument('--output', type = str, default = None)
-        parser.add_argument('--iteration', type= int, default = 50)
+        parser.add_argument('--output', type = str, default = 'Car.FyFL')
+        parser.add_argument('--iteration', type= int, default = 10)
         parser.add_argument('--start', type= int, default = 0)
         config = parser.parse_args()
 
         today= datetime.today()
-        Data_file = os.path.join('../Data',str(today.date()),'Data.csv')
+        Data_file = 'D:\TV\Save_data\\2024-01-03\Select_Data.csv'
         data = pd.read_csv(Data_file,header=0,skiprows=[0,2,3])
         data_cleaned = data.loc[:, (data.max(axis=0) != data.min(axis=0)) & ~data.isna().all(axis=0)]
 
@@ -43,6 +43,7 @@ if __name__ == "__main__":
             print(f"iteratiom {i}, duration time {start-end :.5f} sec")
 
         usable_data1 = pd.DataFrame({'hints': hint,'importances':sum_importances}, index = data_cleaned.columns.to_list())
+
 
         with pd.ExcelWriter(os.path.join('Data',config.output + str(config.start) + '.xlsx'), engine="xlsxwriter") as writer:
                     usable_data1.to_excel(writer, sheet_name="variables")

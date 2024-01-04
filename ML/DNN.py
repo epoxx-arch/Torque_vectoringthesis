@@ -31,12 +31,14 @@ class DNN(nn.Module):
         self.fc2 = nn.Linear(self.hidden_size,self.hidden_size)
         self.fc3 = nn.Linear(self.hidden_size,1)
         self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(0.2)
     
 
     def forward(self,x):
         x = self.relu(self.fc1(x))
         for i in range(self.depth):
             x = self.relu(self.fc2(x))
+            x = self.dropout(x)
         x = self.relu(self.fc3(x))
 
         return x
@@ -54,7 +56,15 @@ class TV():
         torch.cuda.set_device(self.device)
 
 
-    def date_loader(self,Data_path,batch_size = 32,split =0.2):
+    def normalization(self,data):
+            mean = torch.mean(data, dim=0)
+            std = torch.std(data, dim=0)
+            result = (data-mean) / std
+            
+            return result
+
+
+    def data_loader(self,Data_path,batch_size = 32,split =0.2):
         Data = pd.read_csv(Data_path,header=0,skiprows=[0,2,3])
         
         y = Data.pop(str(Data.columns[-1])).values
@@ -62,19 +72,18 @@ class TV():
         Data = torch.tensor(Data.values, dtype=torch.float32)
         mean = torch.mean(Data, dim=0)
         std = torch.std(Data, dim=0)
+        
         normalized_data =(Data - mean) / std
-
+        normalized_data = self.normalization(Data)
 
         y = torch.tensor(y, dtype=torch.float32)
-        mean_y = torch.mean(y, dim=0)
-        std_y = torch.std(y, dim=0)
-        normalized_y =(y - mean_y) / std_y
+        normalized_y = self.normalization(y)
 
         normalized_data = normalized_data.to(self.device)
         normalized_y = normalized_y.to(self.device)
 
 
-        X_train, X_val, y_train, y_val = train_test_split(normalized_data, normalized_y, test_size=split, random_state=42)
+        X_train, X_val, y_train, y_val = train_test_split(normalized_data, normalized_y, test_size=split, random_state=30)
 
         train_dataset = CustomDataset(X_train,y_train)
         val_dataset = CustomDataset(X_val,y_val)
@@ -86,8 +95,9 @@ class TV():
         self.pt_dir = os.path.join(pt_dir,str(self.hidden_size)+'_depth_'+str(self.depth))
         self.log_dir = log_dir
         if os.path.isdir(self.log_dir) == False:
-            os.makedirs(self.pt_dir)
             os.makedirs(self.log_dir)
+        if os.path.isdir(self.pt_dir) == False:
+            os.makedirs(self.pt_dir)
     
     def model_setting(self,hidden_size,depth=2):
         self.hidden_size = hidden_size
@@ -97,7 +107,7 @@ class TV():
         self.model = DNN(self.input_size,self.hidden_size,self.depth)
         self.model.to(self.device)
 
-    def train_setting(self,lr=0.2, loss = nn.MSELoss):
+    def train_setting(self,lr=0.2, loss = nn.L1Loss()):
         self.criterion = loss
         self.optimizer = optim.Adam(self.model.parameters(),lr=lr)
 
@@ -106,7 +116,9 @@ class TV():
 
     def train(self,epoch):
         self.loss_log=[]
+        
         for epoch in tqdm(range(epoch)):
+            total_train_loss = 0
             self.model.train()
             for inputs, labels in self.train_loader:
                 self.optimizer.zero_grad()
@@ -114,18 +126,21 @@ class TV():
                 train_loss = self.criterion(outputs.squeeze(), labels)
                 train_loss.backward()
                 self.optimizer.step()
+                total_train_loss += train_loss.item()
+            avg_train_loss =total_train_loss/len(self.train_loader)
 
             # Validation loop
             self.model.eval()
             with torch.no_grad():
-                val_loss = 0
+                val_loss =0
                 for inputs, labels in self.val_loader:
                     outputs = self.model(inputs)
                     val_loss += self.criterion(outputs.squeeze(), labels).item()
-                val_loss /= len(self.val_loader)
-            self.loss_log.append([train_loss,val_loss])
+                avg_val_loss = val_loss/ len(self.val_loader)
+            
+            self.loss_log.append([avg_train_loss,avg_val_loss])
 
-            print(f'Epoch {epoch+1}, Loss: {train_loss.item():.4f}, Validation Loss: {val_loss:.4f}')
+            print(f'Epoch {epoch+1}, Loss: {avg_train_loss:.4f}, Validation Loss: {avg_val_loss:.4f}')
             self.save_checkpoint(self.model,  os.path.join(self.pt_dir,f'model_epoch_{epoch}.pt'))
     
     def save_log(self):
@@ -143,20 +158,20 @@ if __name__ == "__main__":
     try:
         ## hyperparameters
 
-        batch_size = 128
+        batch_size = 32
         lr = 0.001
-        Loss = nn.MSELoss()
-        hidden_size = 20
-        depth = 5
-        epoch = 100
+        Loss = nn.L1Loss()
+        hidden_size = 3
+        depth = 10
+        epoch = 200
         #path
         today = datetime.today()
-        Data_path = os.path.join('.\Data',str(today.date()),'Select_Data.csv')
+        Data_path = os.path.join('D:\TV\Save_data',str(today.date()),'Select_Data.csv')
         log_dir = os.path.join('D:\TV\Save_data',str(today.date()),'log')
         pt_dir = os.path.join("D:\TV\Save_data",str(today.date()),"pt")
 
         tv = TV()
-        tv.date_loader(Data_path,batch_size=batch_size)
+        tv.data_loader(Data_path,batch_size=batch_size)
         tv.model_setting(hidden_size=hidden_size,depth=depth)
         tv.train_setting(lr=lr,loss=Loss)
         tv.make_dir(pt_dir=pt_dir,log_dir=log_dir)
