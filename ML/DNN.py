@@ -59,7 +59,7 @@ class TV():
     def normalization(self,data):
             mean = torch.mean(data, dim=0)
             std = torch.std(data, dim=0)
-            result = (data-mean) / std
+            result = 100 * (data-mean) / std
             
             return result
 
@@ -69,11 +69,7 @@ class TV():
         
         y = Data.pop(str(Data.columns[-1])).values
 
-        Data = torch.tensor(Data.values, dtype=torch.float32)
-        mean = torch.mean(Data, dim=0)
-        std = torch.std(Data, dim=0)
-        
-        normalized_data =(Data - mean) / std
+        Data = torch.tensor(Data.values, dtype=torch.float32)    
         normalized_data = self.normalization(Data)
 
         y = torch.tensor(y, dtype=torch.float32)
@@ -107,8 +103,9 @@ class TV():
         self.model = DNN(self.input_size,self.hidden_size,self.depth)
         self.model.to(self.device)
 
-    def train_setting(self,lr=0.2, loss = nn.L1Loss()):
+    def train_setting(self,lr=1e-4, loss = nn.L1Loss()):
         self.criterion = loss
+        self.lr = lr
         self.optimizer = optim.Adam(self.model.parameters(),lr=lr)
 
     def save_checkpoint(self,model, filename):
@@ -120,6 +117,8 @@ class TV():
         for epoch in tqdm(range(epoch)):
             total_train_loss = 0
             self.model.train()
+            if epoch == len(range(epoch)):
+                self.lr = 0.1*self.lr
             for inputs, labels in self.train_loader:
                 self.optimizer.zero_grad()
                 outputs = self.model(inputs)
@@ -158,17 +157,17 @@ if __name__ == "__main__":
     try:
         ## hyperparameters
 
-        batch_size = 32
-        lr = 0.001
+        batch_size = 1024
+        lr = 1e-2
         Loss = nn.L1Loss()
         hidden_size = 3
         depth = 10
-        epoch = 200
+        epoch = 500
         #path
         today = datetime.today()
-        Data_path = os.path.join('D:\TV\Save_data',str(today.date()),'Select_Data.csv')
-        log_dir = os.path.join('D:\TV\Save_data',str(today.date()),'log')
-        pt_dir = os.path.join("D:\TV\Save_data",str(today.date()),"pt")
+        Data_path = os.path.join('Data/ML','Custom_data','concat.csv')
+        log_dir = os.path.join('Data/ML',str(today.date()),'log')
+        pt_dir = os.path.join('Data/ML',str(today.date()),"pt")
 
         tv = TV()
         tv.data_loader(Data_path,batch_size=batch_size)

@@ -1,18 +1,12 @@
 % Set the file path of your CSV file
-filename = 'C:\Users\User\Desktop\Code\TV\Data\2024-01-09\Data.csv';
+filename = 'C:/Users/User/Desktop/Code/TV/Data/2024_01_24/TV_JM_154213.dat.csv';
 
 % Read the CSV file into a table
 dataTable = readtable(filename);
 
 %%
 
-y =  dataTable.Car_FyFL + dataTable.Car_FyFR + dataTable.Car_FyRL + dataTable.Car_FyRR;
-
-dataTable = removevars(dataTable, 'Car_FyFL');
-dataTable = removevars(dataTable, 'Car_FyFR');
-dataTable = removevars(dataTable, 'Car_FyRL');
-dataTable = removevars(dataTable, 'Car_FyRR');
-
+My = dataTable.My;
 numColumns = width(dataTable);
 column_Names = dataTable.Properties.VariableNames;
 %%
@@ -26,10 +20,10 @@ ylabel('force')
 
 %%
 subplot 
-for i = 1:numColumns
+for i = 1:numColumns-1
     x= dataTable{:,i};
     subplot(6,4,i)
-    scatter(x,y)
+    scatter(x,My)
     title(column_Names(i))
 end
 
