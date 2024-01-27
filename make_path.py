@@ -1,8 +1,9 @@
 import numpy as np
 import random
 import math as m
+import sys
 
-def make_path(start_vel=0,end_time=300):
+def make_path(start_vel=10,end_time=300):
     start_time=0
     time_step = 0.1
 
@@ -14,6 +15,9 @@ def make_path(start_vel=0,end_time=300):
     time = []
     now_time = start_time
     next_time = 0
+    if start_vel < 10:
+        print("Start velocity is lower than 10. Shutting down the program.")
+        sys.exit()
     while next_time < end_time:
         
         long = random.choice(longitutal_list)
@@ -32,28 +36,18 @@ def make_path(start_vel=0,end_time=300):
         time = time + timelist
 
         if long == 'brake':
-            if last_vel <= 0:
-                speed_list = [5 for i in range(0,len(timelist))]
-            else:
-                max_sens = last_vel/period
-                sens = random.uniform(0,float(max_sens))
-                speed_list = [last_vel - sens * time_step * i for i in range(0,len(timelist))]
+                sens = 10/period
+                speed_list = [start_vel+ 10 - sens * time_step * i for i in range(0,len(timelist))]
 
         elif long == 'acc':
-                if last_vel > 100:
-                    speed_list = [last_vel for i in range(0,len(timelist))]
-                else:
-                    sens = random.uniform(0,10)
-                    speed_list = [last_vel + sens * time_step * i for i in range(0,len(timelist))]
+                sens = 10/period
+                speed_list = [start_vel + sens * time_step * i for i in range(0,len(timelist))]
         elif long =='fix':
             speed_list = [last_vel for i in range(0,len(timelist))]
 
         elif long == 'sin':
-            if last_vel < 5:
-                speed_list = [last_vel for i in range(0,len(timelist))]
-            else:  
-                amplitude = random.uniform(0,5)
-                speed_list = [last_vel + amplitude * m.sin(i/len(timelist)*2*m.pi) for i in range(0,len(timelist))]
+            amplitude = random.uniform(0,5)
+            speed_list = [start_vel + 5 + amplitude * m.sin(i/len(timelist)*2*m.pi) for i in range(0,len(timelist))]
         long_control = long_control + speed_list
 
         if lat == 'fix':
@@ -61,7 +55,7 @@ def make_path(start_vel=0,end_time=300):
             steer_rad = steer * m.pi/180
             steer_list = [steer_rad for i in range(0,len(timelist))]
         elif lat == 'sin':
-            amplitude = random.randint(-45,45)
+            amplitude = random.randint(-30,30)
             amplitude_rad = amplitude * m.pi/180
             steer_list =[amplitude_rad * m.sin(i/len(timelist)*2*m.pi) for i in range(0,len(timelist))]
 
@@ -82,6 +76,6 @@ def make_path(start_vel=0,end_time=300):
 
 if __name__ == "__main__":
     ## parser setting
-    start_vel = range(0,40,5)
+    start_vel = range(10,60,5)
     for i in start_vel:
         make_path(start_vel=i)
