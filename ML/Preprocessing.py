@@ -66,8 +66,8 @@ def preprocessing(input_path,output_path):
 
 if __name__ == "__main__":
 
-    path = 'D:/TV/FCM_Projects_JM/FS_race/SimOutput/DESKTOP-00IBLK8/20240126/random_torque_vectoring'
-    output_path = 'Data/2024_01_26/random_torque_vectoring'
+    path = 'D:/TV/FCM_Projects_JM/FS_race/SimOutput/DESKTOP-00IBLK8/20240127/random_torque_vectoring'
+    output_path = 'Data/2024_01_27/random_torque_vectoring'
     file_list = os.listdir(path)
     for file in file_list:
         file_name = file.split('.')
@@ -75,4 +75,5 @@ if __name__ == "__main__":
         input_path = path + '/' + file
         output = output_path + '/' + file_name[0] + '.csv'
         preprocessing(input_path, output)
+
     print('End')

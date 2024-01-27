@@ -15,8 +15,8 @@ def make_path(start_vel=10,end_time=300):
     time = []
     now_time = start_time
     next_time = 0
-    if start_vel < 10:
-        print("Start velocity is lower than 10. Shutting down the program.")
+    if start_vel < 5:
+        print("Start velocity is lower than 5. Shutting down the program.")
         sys.exit()
     while next_time < end_time:
         
@@ -36,18 +36,18 @@ def make_path(start_vel=10,end_time=300):
         time = time + timelist
 
         if long == 'brake':
-                sens = 10/period
-                speed_list = [start_vel+ 10 - sens * time_step * i for i in range(0,len(timelist))]
+                sens = 5/period
+                speed_list = [start_vel+ 5 - sens * time_step * i for i in range(0,len(timelist))]
 
         elif long == 'acc':
-                sens = 10/period
+                sens = 5/period
                 speed_list = [start_vel + sens * time_step * i for i in range(0,len(timelist))]
         elif long =='fix':
-            speed_list = [last_vel for i in range(0,len(timelist))]
+            speed_list = [start_vel + random.uniform(-5,5) for i in range(0,len(timelist))]
 
         elif long == 'sin':
-            amplitude = random.uniform(0,5)
-            speed_list = [start_vel + 5 + amplitude * m.sin(i/len(timelist)*2*m.pi) for i in range(0,len(timelist))]
+            amplitude = random.uniform(0,2.5)
+            speed_list = [start_vel + 2.5 + amplitude * m.sin(i/len(timelist)*2*m.pi) for i in range(0,len(timelist))]
         long_control = long_control + speed_list
 
         if lat == 'fix':
@@ -76,6 +76,6 @@ def make_path(start_vel=10,end_time=300):
 
 if __name__ == "__main__":
     ## parser setting
-    start_vel = range(10,60,5)
+    start_vel = range(5,35,5)
     for i in start_vel:
         make_path(start_vel=i)

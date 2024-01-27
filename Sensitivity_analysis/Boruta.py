@@ -15,7 +15,7 @@ if __name__ == "__main__":
         config = parser.parse_args()
         sample_num = 50000
         today= datetime.today()
-        Data_file = 'Data/ML/Custom_data/concat_random_torque_vectoring_v.csv'
+        Data_file = 'Data/ML/Custom_data/new_concat.csv'
         data = pd.read_csv(Data_file,header=0)
         sampling_data = data.sample(sample_num,random_state=0)
         My = sampling_data.pop('My')
@@ -48,7 +48,7 @@ if __name__ == "__main__":
         usable_data1 = pd.DataFrame({'hints': hint,'importances':sum_importances}, index = sampling_data.columns.to_list())
 
 
-        with pd.ExcelWriter(os.path.join('Data','check_variables_random_torque_vectoring_v.xlsx'), engine="xlsxwriter") as writer:
+        with pd.ExcelWriter(os.path.join('Data','new_check.xlsx'), engine="xlsxwriter") as writer:
                     usable_data1.to_excel(writer, sheet_name="variables")
         print('Program End')
 

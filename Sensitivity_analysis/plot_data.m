@@ -1,5 +1,5 @@
 % Set the file path of your CSV file
-filename = 'C:/Users/User/Desktop/Code/TV/Data/ML/Custom_data/concat_random_torque_vectoring_v.csv';
+filename = 'C:/Users/User/Desktop/Code/TV/Data/ML/Custom_data/new_concat.csv';
 
 % Read the CSV file into a table
 dataTable = readtable(filename,VariableNamingRule="preserve");
@@ -13,7 +13,22 @@ column_Names = dataTable.Properties.VariableNames;
 
 
 %%
-subplot 
+for i = 1:numColumns-1
+
+    x = dataTable{:,i};
+    figure (i)
+    yyaxis left;
+    plot(x)
+    yyaxis right ;
+    plot(My)
+    xlabel(column_Names(i))
+    title(column_Names(i))
+
+end
+
+%%
+
+
 for i = 1:numColumns-2
     for j = i:numColumns-1
         x = dataTable{:,i};
