@@ -32,13 +32,16 @@ class DNN(nn.Module):
         self.fc3 = nn.Linear(self.hidden_size,1)
         self.relu = nn.ReLU()
         self.dropout = nn.Dropout(0.2)
+        self.batch_norm = nn.BatchNorm1d(self.hidden_size)
     
 
     def forward(self,x):
         x = self.relu(self.fc1(x))
         for i in range(self.depth):
-            x = self.relu(self.fc2(x))
+            x = self.batch_norm(x)
+            x = self.relu(x)
             x = self.dropout(x)
+            x = self.fc2(x)
         x = self.relu(self.fc3(x))
 
         return x
@@ -70,16 +73,16 @@ class TV():
         y = Data.pop(str(Data.columns[-1])).values
 
         Data = torch.tensor(Data.values, dtype=torch.float32)    
-        normalized_data = self.normalization(Data)
+        Data = self.normalization(Data)
 
         y = torch.tensor(y, dtype=torch.float32)
-        normalized_y = self.normalization(y)
+        y = self.normalization(y)
 
-        normalized_data = normalized_data.to(self.device)
-        normalized_y = normalized_y.to(self.device)
+        Data = Data.to(self.device)
+        y = y.to(self.device)
 
 
-        X_train, X_val, y_train, y_val = train_test_split(normalized_data, normalized_y, test_size=split, random_state=30)
+        X_train, X_val, y_train, y_val = train_test_split(Data, y, test_size=split, random_state=30)
 
         train_dataset = CustomDataset(X_train,y_train)
         val_dataset = CustomDataset(X_val,y_val)
@@ -157,16 +160,16 @@ if __name__ == "__main__":
     try:
         ## hyperparameters
 
-        batch_size = 1024
-        lr = 1e-2
+        batch_size = 32
+        lr = 1e-4
         Loss = nn.L1Loss()
-        hidden_size = 3
-        depth = 10
+        hidden_size = 5
+        depth = 5
         epoch = 500
         #path
         today = datetime.today()
         Data_path = os.path.join('Data/ML','Custom_data','concat.csv')
-        log_dir = os.path.join('Data/ML',str(today.date()),'log')
+        log_dir = os.path.join('Data/ML',str(today.date()),'log') 
         pt_dir = os.path.join('Data/ML',str(today.date()),"pt")
 
         tv = TV()

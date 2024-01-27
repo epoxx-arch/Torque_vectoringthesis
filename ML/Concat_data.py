@@ -1,8 +1,8 @@
 import os
 import pandas as pd
 
-path = 'C:/Users/User/Desktop/Code/TV/Data/2024_01_24'
-output_path = 'Data/ML/Custom_data/concat.csv'
+path = 'C:/Users/User/Desktop/Code/TV/Data/2024_01_26/random_torque_vectoring'
+output_path = 'Data/ML/Custom_data/concat_random_torque_vectoring_v.csv'
 
 file_list = os.listdir(path)
 

@@ -22,7 +22,7 @@ def preprocessing(input_path,output_path):
 
     # Calculate 'My' using vectorized operations
     tr, lf, lr = 0.621, 0.813, 0.787
-    My = (FyFL - FyFR) * np.sin(steer) * tr + (FyFR + FyFL) * np.cos(steer) * lf - (FyRR + FyRL) * lr + Trq_alignFL + Trq_alignFR + Trq_alignRL + Trq_alignRR
+    My = (FyFL - FyFR) * np.sin(steer) * tr + (FyFR + FyFL) * np.cos(steer) * lf - (FyRR + FyRL) * lr - Trq_alignFL - Trq_alignFR - Trq_alignRL - Trq_alignRR
 
     # Control Values
     DM_steering = df.pop('DM.Steer.Ang')
@@ -35,6 +35,9 @@ def preprocessing(input_path,output_path):
     ax, ay, az = df.pop('Car.ax'), df.pop('Car.ay'), df.pop('Car.az')
     Roll_Vel, Yaw_Vel, Pitch_Vel = df.pop('Car.RollVel'), df.pop('Car.YawVel'), df.pop('Car.PitchVel')
 
+    # addition Values
+
+    Vel = df.pop('Car.Con.v')
     # Create a new DataFrame for the extracted data
     input_data = pd.DataFrame({
         "DM.steering": DM_steering,
@@ -52,6 +55,7 @@ def preprocessing(input_path,output_path):
         "Roll_Vel": Roll_Vel,
         "Yaw_Vel": Yaw_Vel,
         "Pitch_Vel": Pitch_Vel,
+        "Car.Con.v" : Vel,
         "My" : My
     })
 
@@ -62,8 +66,8 @@ def preprocessing(input_path,output_path):
 
 if __name__ == "__main__":
 
-    path = 'D:/TV/FCM_Projects_JM/FS_race/SimOutput/DESKTOP-00IBLK8/20240123'
-    output_path = 'Data/2024_01_24'
+    path = 'D:/TV/FCM_Projects_JM/FS_race/SimOutput/DESKTOP-00IBLK8/20240126/random_torque_vectoring'
+    output_path = 'Data/2024_01_26/random_torque_vectoring'
     file_list = os.listdir(path)
     for file in file_list:
         file_name = file.split('.')
