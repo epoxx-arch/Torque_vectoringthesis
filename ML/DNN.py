@@ -163,12 +163,12 @@ if __name__ == "__main__":
         batch_size = 32
         lr = 1e-4
         Loss = nn.L1Loss()
-        hidden_size = 5
-        depth = 5
+        hidden_size = 10
+        depth = 3
         epoch = 500
         #path
         today = datetime.today()
-        Data_path = os.path.join('Data/ML','Custom_data','concat.csv')
+        Data_path = os.path.join('Data/ML','Custom_data','new_concat2.csv')
         log_dir = os.path.join('Data/ML',str(today.date()),'log') 
         pt_dir = os.path.join('Data/ML',str(today.date()),"pt")
 
