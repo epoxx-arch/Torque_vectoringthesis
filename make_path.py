@@ -35,6 +35,19 @@ def make_path(start_vel=10,end_time=300):
         timelist = list(map(lambda x: round(x*0.1,2),timelist))
         time = time + timelist
 
+        if lat == 'fix':
+            steer = random.randint(-30,30)
+            steer_rad = steer * m.pi/180
+            steer_list = [steer_rad for i in range(0,len(timelist))]
+        elif lat == 'sin':
+            amplitude = random.randint(-30,30)
+            amplitude_rad = amplitude * m.pi/180
+            steer_list =[amplitude_rad * m.sin(i/len(timelist)*2*m.pi) for i in range(0,len(timelist))]
+
+        lat_control = lat_control + steer_list
+
+
+
         if long == 'brake':
                 sens = 5/period
                 speed_list = [start_vel+ 5 - sens * time_step * i for i in range(0,len(timelist))]
@@ -50,16 +63,6 @@ def make_path(start_vel=10,end_time=300):
             speed_list = [start_vel + 2.5 + amplitude * m.sin(i/len(timelist)*2*m.pi) for i in range(0,len(timelist))]
         long_control = long_control + speed_list
 
-        if lat == 'fix':
-            steer = random.randint(-30,30)
-            steer_rad = steer * m.pi/180
-            steer_list = [steer_rad for i in range(0,len(timelist))]
-        elif lat == 'sin':
-            amplitude = random.randint(-30,30)
-            amplitude_rad = amplitude * m.pi/180
-            steer_list =[amplitude_rad * m.sin(i/len(timelist)*2*m.pi) for i in range(0,len(timelist))]
-
-        lat_control = lat_control + steer_list
     time.append(end_time)
 
 
