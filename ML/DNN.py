@@ -68,7 +68,7 @@ class TV():
 
 
     def data_loader(self,Data_path,batch_size = 32,split =0.2):
-        Data = pd.read_csv(Data_path,header=0,skiprows=[0,2,3])
+        Data = pd.read_csv(Data_path,header=0)
         
         y = Data.pop(str(Data.columns[-1])).values
 
@@ -160,7 +160,7 @@ if __name__ == "__main__":
     try:
         ## hyperparameters
 
-        batch_size = 32
+        batch_size = 1
         lr = 1e-4
         Loss = nn.L1Loss()
         hidden_size = 5
