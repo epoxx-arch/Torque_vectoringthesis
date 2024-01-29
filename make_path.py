@@ -12,10 +12,11 @@ def generate_period_list(end_time,dt):
         period = random.randint(10,150)
         time_sample_num = time_sample_num-period
         if time_sample_num < 0 :
-            period_list.append(time_sample_num)
+            period_list.append(time_sample_num+period)
             break
         else:
             period_list.append(period)
+
     return period_list
 
 
@@ -28,7 +29,7 @@ def generate_longitudinal_control(start_vel, vel_interval,end_time, time_step,lo
         if control == 'brake':
             scale = random.uniform(1,vel_interval)
             sens = scale/period
-            speed_list = speed_list + [start_vel+ scale - sens * time_step * i for i in range(0,period)]
+            speed_list = speed_list + [start_vel+ scale - sens * time_step * i for i in range(0,period+1)]
 
 
         elif control == 'acc':
@@ -79,7 +80,9 @@ def make_path(start_vel,vel_interval, end_time=200, longitutal_list=None, latera
     # Modify the function to use the external functions
     long_control = generate_longitudinal_control(start_vel, vel_interval,end_time, time_step, longitutal_list)
     lat_control = generate_lateral_control(max_steer, end_time, time_step, lateral_list)
-    time = [0,end_time,time_step]
+    time = list(range(int(0),int(10*end_time),int(10*time_step)))
+    time = list(map(lambda x: round(x*0.1,2),time))
+    time.append(end_time)
     # Write to file
     value_string ='#TIme steer velocity\n'
     for i in range(len(time)):
@@ -90,7 +93,7 @@ def make_path(start_vel,vel_interval, end_time=200, longitutal_list=None, latera
 
 if __name__ == "__main__":
     # Use default values or specify your own
-    vel_interval = 4
+    vel_interval = 8
     cnt = 1 
     max_vel = 0
     while True :
@@ -104,7 +107,7 @@ if __name__ == "__main__":
         cnt += 1
 
     
-    start_vel_range = range(vel_interval, max_vel, vel_interval)
+    start_vel_range = range(vel_interval, max_vel+1, vel_interval)
     
     for start_vel in start_vel_range:
         make_path(start_vel, vel_interval)
