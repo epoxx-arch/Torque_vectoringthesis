@@ -8,7 +8,7 @@ from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 import os
 from datetime import datetime
-
+import torch.autograd.profiler as profiler
 class CustomDataset(Dataset):
     def __init__(self, x, y):
         self.x = x
@@ -36,13 +36,13 @@ class DNN(nn.Module):
     
 
     def forward(self,x):
-        x = self.relu(self.fc1(x))
-        for i in range(self.depth):
-            x = self.batch_norm(x)
-            x = self.relu(x)
-            x = self.dropout(x)
-            x = self.fc2(x)
-        x = self.relu(self.fc3(x))
+        with profiler.record_function("DNN"):
+            x = self.relu(self.fc1(x))
+            for i in range(self.depth):
+                x = self.relu(x)
+                x = self.dropout(x)
+                x = self.fc2(x)
+            x = self.relu(self.fc3(x))
 
         return x
 
@@ -58,13 +58,42 @@ class TV():
 
         torch.cuda.set_device(self.device)
 
+    def normalization(self, data,min_value=0, max_value=1):
+        # Normalize the input data
+        min_val = np.min(data)
+        max_val = np.max(data)
 
-    def normalization(self,data):
-            mean = torch.mean(data, dim=0)
-            std = torch.std(data, dim=0)
-            result = 100 * (data-mean) / std
-            
-            return result
+        scaled_data = min_value + (max_value - min_value) * (data - min_val) / (max_val - min_val)
+        return scaled_data
+
+    def denormalization(self, scaled_data,original_data):
+
+        min_val = np.min(original_data)
+        max_val = np.max(original_data)
+
+        denormalized_data = min_val + (max_val - min_val) * (scaled_data)
+
+        return denormalized_data
+    
+    def check_output_with_denormalization(self, outputs, labels):
+        # Convert the outputs and labels to numpy arrays
+        outputs_np = outputs.cpu().detach().numpy()
+        labels_np = labels.cpu().detach().numpy()
+
+        # Denormalize the outputs and labels
+        outputs_denorm = self.denormalization(outputs_np,self.y)
+        labels_denorm = self.denormalization(labels_np,self.y)
+
+        # Print the denormalized outputs and labels for comparison
+        print("Denormalized Outputs:")
+        print(outputs_denorm)
+        print("Denormalized Labels:")
+        print(labels_denorm)   
+
+
+    def check_the_dataset(self):
+        # Check the structure of the data loader
+        print(next(iter(self.train_loader)))
 
 
     def data_loader(self,Data_path,batch_size = 32,split =0.2):
@@ -72,17 +101,17 @@ class TV():
         
         y = Data.pop(str(Data.columns[-1])).values
 
-        Data = torch.tensor(Data.values, dtype=torch.float32)    
-        Data = self.normalization(Data)
+        self.Data = np.array(Data.values, dtype=float)    
+        Tensor_Data = torch.FloatTensor(self.normalization(self.Data))
 
-        y = torch.tensor(y, dtype=torch.float32)
-        y = self.normalization(y)
+        self.y = np.array(y, dtype=float)
+        Tensor_y = torch.FloatTensor(self.normalization(self.y))
 
-        Data = Data.to(self.device)
-        y = y.to(self.device)
+        Tensor_Data = Tensor_Data.to(self.device)
+        Tensor_y = Tensor_y.to(self.device)
 
 
-        X_train, X_val, y_train, y_val = train_test_split(Data, y, test_size=split, random_state=30)
+        X_train, X_val, y_train, y_val = train_test_split(Tensor_Data, Tensor_y, test_size=split, random_state=30)
 
         train_dataset = CustomDataset(X_train,y_train)
         val_dataset = CustomDataset(X_val,y_val)
@@ -103,6 +132,7 @@ class TV():
         self.depth = depth
         sample_batch = next(iter(self.train_loader))
         self.input_size = sample_batch[0].shape[1]
+        print(self.input_size)
         self.model = DNN(self.input_size,self.hidden_size,self.depth)
         self.model.to(self.device)
 
@@ -142,6 +172,17 @@ class TV():
             
             self.loss_log.append([avg_train_loss,avg_val_loss])
 
+            if epoch % 10 == 0 :
+                with torch.no_grad():
+                    inputs, labels = next(iter(self.train_loader))
+
+                    with profiler.profile(with_stack=True, use_cuda= True,profile_memory= True) as prof:
+                        outputs = self.model(inputs)
+                    print(prof.key_averages().table(row_limit=1))
+                    self.check_output_with_denormalization(outputs.squeeze(),labels)
+
+
+
             print(f'Epoch {epoch+1}, Loss: {avg_train_loss:.4f}, Validation Loss: {avg_val_loss:.4f}')
             self.save_checkpoint(self.model,  os.path.join(self.pt_dir,f'model_epoch_{epoch}.pt'))
     
@@ -157,10 +198,11 @@ class TV():
 
 
 if __name__ == "__main__":
+
     try:
         ## hyperparameters
 
-        batch_size = 1
+        batch_size = 64
         lr = 1e-4
         Loss = nn.L1Loss()
         hidden_size = 10
@@ -177,6 +219,7 @@ if __name__ == "__main__":
         tv.model_setting(hidden_size=hidden_size,depth=depth)
         tv.train_setting(lr=lr,loss=Loss)
         tv.make_dir(pt_dir=pt_dir,log_dir=log_dir)
+        # tv.check_the_dataset()
         tv.train(epoch)
         tv.save_log()
 

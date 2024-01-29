@@ -9,6 +9,7 @@ from tqdm import tqdm
 import os
 from datetime import datetime
 import numpy as np
+import torch.autograd.profiler as profiler
 
 # Custom Dataset class for handling input data and labels
 class CustomDataset(Dataset):
@@ -38,8 +39,9 @@ class EstimationLSTM(nn.Module):
 
     def forward(self, x):
         # Forward pass through LSTM and fully connected layer
-        out, _ = self.lstm(x)
-        out = self.fc(out[:, -1])
+        with profiler.record_function("LSTM"):
+            out, _ = self.lstm(x)
+            out = self.fc(out[:, -1])
         return out
 
     def reset_hidden_state(self):
@@ -69,6 +71,31 @@ class EstimationMy:
 
         scaled_data = min_value + (max_value - min_value) * (data - min_val) / (max_val - min_val)
         return scaled_data
+
+
+    def denormalization(self, scaled_data,original_data):
+
+        min_val = np.min(original_data)
+        max_val = np.max(original_data)
+
+        denormalized_data = min_val + (max_val - min_val) * (scaled_data)
+
+        return denormalized_data
+    
+    def check_output_with_denormalization(self, outputs, labels):
+        # Convert the outputs and labels to numpy arrays
+        outputs_np = outputs.cpu().detach().numpy()
+        labels_np = labels.cpu().detach().numpy()
+
+        # Denormalize the outputs and labels
+        outputs_denorm = self.denormalization(outputs_np,self.np_y)
+        labels_denorm = self.denormalization(labels_np,self.np_y)
+
+        # Print the denormalized outputs and labels for comparison
+        print("Denormalized Outputs:")
+        print(outputs_denorm)
+        print("Denormalized Labels:")
+        print(labels_denorm)   
 
     def make_dir(self, log_dir, pt_dir):
         # Create directories for logs and saved models
@@ -112,8 +139,10 @@ class EstimationMy:
         self.seq_len = seq_len
         data_X, data_Y = self.import_data(seq_len=self.seq_len, data_path=data_path)
 
-        data_X = torch.FloatTensor(self.normalization(np.array(data_X)))
-        data_Y = torch.FloatTensor(self.normalization(np.array(data_Y)))
+        self.np_x = np.array(data_X)
+        self.np_y = np.array(data_Y)
+        data_X = torch.FloatTensor(self.normalization(self.np_x))
+        data_Y = torch.FloatTensor(self.normalization(self.np_y))
 
 
 
@@ -179,6 +208,15 @@ class EstimationMy:
 
             self.loss_log.append([avg_train_loss, avg_val_loss])
 
+            if epoch % 10 == 0 :
+                with torch.no_grad():
+                    inputs, labels = next(iter(self.train_loader))
+                    with profiler.profile(with_stack=True,use_cuda= True, profile_memory= True) as prof:
+                        outputs = self.model(inputs)
+                    print(prof.key_averages().table(row_limit=1))
+                    labels = torch.unsqueeze(labels,dim=1)
+                    self.check_output_with_denormalization(outputs,labels)
+
             print(f'Epoch {epoch + 1}, Loss: {avg_train_loss:.4f}, Validation Loss: {avg_val_loss:.4f}')
             self.save_checkpoint(os.path.join(self.pt_dir, f'model_epoch_{epoch}.pt'))
 
@@ -187,7 +225,7 @@ class EstimationMy:
 if __name__ == "__main__":
     try:
         # Hyperparameters
-        batch_size = 4
+        batch_size = 2
         lr = 1e-4
         hidden_size = 20
 
