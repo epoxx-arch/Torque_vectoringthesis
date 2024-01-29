@@ -35,7 +35,7 @@ for i = 1:numColumns-2
         y = dataTable{:,j};
         figure (i)
         scatter3(x,y,My)
-        xlabel(column_Names(i))
+        xlabel(column_Names(i))s
         ylabel(column_Names(j))
         title(column_Names(i),column_Names(j))
     end

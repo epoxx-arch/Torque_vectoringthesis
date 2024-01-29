@@ -30,6 +30,7 @@ class EstimationLSTM(nn.Module):
         self.num_layers = num_layers
         self.hidden_size = hidden_size
         self.input_size = input_size
+        self.output_size = output_size
 
         # LSTM layer followed by a fully connected layer
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers=num_layers, batch_first=True)
@@ -61,12 +62,13 @@ class EstimationMy:
 
         torch.cuda.set_device(self.device)
 
-    def normalization(self, data):
+    def normalization(self, data,min_value=0, max_value=1):
         # Normalize the input data
-        mean = torch.mean(data, dim=0)
-        std = torch.std(data, dim=0)
-        result = 100 * (data - mean) / std
-        return result
+        min_val = np.min(data)
+        max_val = np.max(data)
+
+        scaled_data = min_value + (max_value - min_value) * (data - min_val) / (max_val - min_val)
+        return scaled_data
 
     def make_dir(self, log_dir, pt_dir):
         # Create directories for logs and saved models
@@ -75,41 +77,51 @@ class EstimationMy:
         os.makedirs(self.log_dir, exist_ok=True)
         os.makedirs(self.pt_dir, exist_ok=True)
 
+    def import_data(self,seq_len,data_path):
+        
+        file_list = os.listdir(data_path)
+        data_X = []
+        data_Y = []
+        for file in file_list:
+            input_path = data_path + '/' + file
+            data = pd.read_csv(input_path)
+            y = data.pop(str(data.columns[-1])).values
+
+            data = torch.tensor(data.values, dtype=torch.float32)
+            # data = self.normalization(data)
+            
+            y = torch.tensor(y, dtype=torch.float32)
+            # y = self.normalization(y)
+
+            for i in range(0, len(data) - seq_len):
+                if i + seq_len > len(data):
+                    break
+                else:
+                    _x = data[i:i + seq_len, :]
+                    _y = y[i + seq_len-1]
+
+                data_X.append(_x)
+                data_Y.append(_y)
+
+            return data_X, data_Y
+
+        
+
     def data_loader(self, data_path, batch_size=32, seq_len=50, split=0.2):
         # Load and preprocess data, create data loaders for training and validation
         self.seq_len = seq_len
-        data = pd.read_csv(data_path)
-        y = data.pop(str(data.columns[-1])).values
+        data_X, data_Y = self.import_data(seq_len=self.seq_len, data_path=data_path)
 
-        data = torch.tensor(data.values, dtype=torch.float32)
-        data = self.normalization(data)
+        data_X = torch.FloatTensor(self.normalization(np.array(data_X)))
+        data_Y = torch.FloatTensor(self.normalization(np.array(data_Y)))
 
-        y = torch.tensor(y, dtype=torch.float32)
-        y = self.normalization(y)
 
-        data_X = []
-        data_Y = []
-
-        for i in range(0, len(data) - seq_len):
-            if i + seq_len > len(data):
-                break
-            _x = data[i:i + seq_len, :]
-            _y = y[i:i + seq_len]
-
-            data_X.append(_x)
-            data_Y.append(_y)
-
-        data_X = torch.FloatTensor(np.array(data_X))
-        data_Y = torch.FloatTensor(np.array(data_Y))
 
         data_X = data_X.to(self.device)
         data_Y = data_Y.to(self.device)
 
-        X_train, X_val = random_split(data_X, [int(len(data_X) * split), len(data_X) - int(len(data_X) * split)])
-        y_train, y_val = random_split(data_Y, [int(len(data_X) * split), len(data_X) - int(len(data_X) * split)])
-
-        train_dataset = CustomDataset(X_train, y_train)
-        val_dataset = CustomDataset(X_val, y_val)
+        dataset = CustomDataset(data_X,data_Y)
+        train_dataset, val_dataset = random_split(dataset, [int(len(data_X) * split), len(data_X) - int(len(data_X) * split)])
 
         self.train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         self.val_loader = DataLoader(val_dataset, batch_size=batch_size)
@@ -127,7 +139,7 @@ class EstimationMy:
         self.model = EstimationLSTM(self.input_size, self.hidden_size, output_size, self.seq_len, num_layers)
         self.model.to(self.device)
 
-    def train_setting(self, lr=1e-4, loss=nn.L1Loss()):
+    def train_setting(self, lr=1e-4, loss=nn.MSELoss()):
         # Set training parameters including learning rate and loss function
         self.criterion = loss
         self.lr = lr
@@ -147,6 +159,7 @@ class EstimationMy:
                 self.model.reset_hidden_state()
                 self.optimizer.zero_grad()
                 outputs = self.model(inputs)
+                labels = torch.unsqueeze(labels,dim=1)
                 train_loss = self.criterion(outputs, labels)
                 train_loss.backward()
                 self.optimizer.step()
@@ -160,6 +173,7 @@ class EstimationMy:
                 val_loss = 0
                 for inputs, labels in self.val_loader:
                     outputs = self.model(inputs)
+                    labels = torch.unsqueeze(labels,dim=1)
                     val_loss += self.criterion(outputs, labels).item()
                 avg_val_loss = val_loss / len(self.val_loader)
 
@@ -168,21 +182,33 @@ class EstimationMy:
             print(f'Epoch {epoch + 1}, Loss: {avg_train_loss:.4f}, Validation Loss: {avg_val_loss:.4f}')
             self.save_checkpoint(os.path.join(self.pt_dir, f'model_epoch_{epoch}.pt'))
 
-# Hyperparameters
-batch_size = 2
-lr = 1e-4
-hidden_size = 5
-epochs = 500
 
-# File paths
-today = datetime.today()
-data_path = os.path.join('../Data/', 'TV_JM_145120.csv')
-log_dir = os.path.join('../Data/ML', str(today.date()), 'log')
-pt_dir = os.path.join('../Data/ML', str(today.date()), "pt")
 
-# Create an instance of EstimationMy
-model = EstimationMy()
+if __name__ == "__main__":
+    try:
+        # Hyperparameters
+        batch_size = 4
+        lr = 1e-4
+        hidden_size = 20
 
-# Load and preprocess data, create model, set training parameters, create directories, and train the model
-model.data_loader(data_path, batch_size=batch_size)
-model.model_setting(hidden_size=hidden_size)
+        epochs = 500
+
+        # File paths
+        today = datetime.today()
+        data_path = os.path.join('Data','2024_01_27', 'random_torque_vectoring')
+        log_dir = os.path.join('Data/ML', str(today.date()), 'log')
+        pt_dir = os.path.join('Data/ML', str(today.date()), "pt")
+
+        # Create an instance of EstimationMy
+        model = EstimationMy()
+
+        # Load and preprocess data, create model, set training parameters, create directories, and train the model
+        model.data_loader(data_path, batch_size=batch_size)
+        model.model_setting(hidden_size=hidden_size)
+        model.train_setting()
+        model.make_dir(pt_dir=pt_dir,log_dir=log_dir)
+        # model.check_the_dataset()
+        model.train(epochs=epochs)
+
+    except KeyboardInterrupt:
+        print("Canceld by user...")

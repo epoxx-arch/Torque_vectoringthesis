@@ -60,10 +60,10 @@ def preprocessing(input_path,output_path):
 
 if __name__ == "__main__":
 
-    # path = 'D:/TV/FCM_Projects_JM/FS_race/SimOutput/DESKTOP-00IBLK8/20240127/random_torque_vectoring'
-    # output_path = 'Data/2024_01_27/random_torque_vectoring'
-    path = "Data/CM_data"
-    output_path = 'Data/'
+    path = 'D:/TV/FCM_Projects_JM/FS_race/SimOutput/DESKTOP-00IBLK8/20240127/random_torque_vectoring'
+    output_path = 'Data/2024_01_27/random_torque_vectoring'
+    #path = "Data/CM_data"
+    #output_path = 'Data/'
     file_list = os.listdir(path)
     for file in file_list:
         file_name = file.split('.')
