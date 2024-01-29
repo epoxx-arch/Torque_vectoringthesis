@@ -3,82 +3,108 @@ import random
 import math as m
 import sys
 
-def make_path(start_vel=10,end_time=300):
-    start_time=0
-    time_step = 0.1
 
-    longitutal_list = ['brake','acc','fix','sin']
-    lateral_list = ['fix','sin']
+def generate_period_list(end_time,dt):
+    '''output is period list. this contains period sampling time nums. if 15sec, 150'''
+    time_sample_num = int(end_time/dt) + 1
+    period_list =[]
+    while True :
+        period = random.randint(10,150)
+        time_sample_num = time_sample_num-period
+        if time_sample_num < 0 :
+            period_list.append(time_sample_num)
+            break
+        else:
+            period_list.append(period)
+    return period_list
 
-    long_control=[start_vel]
-    lat_control = [0]
-    time = []
-    now_time = start_time
-    next_time = 0
-    if start_vel < 5:
-        print("Start velocity is lower than 5. Shutting down the program.")
-        sys.exit()
-    while next_time < end_time:
+
+
+def generate_longitudinal_control(start_vel, vel_interval,end_time, time_step,longitutal_list):
+    period_list = generate_period_list(end_time,time_step)
+    control = random.choice(longitutal_list)
+    speed_list = []
+    for period in period_list:
+        if control == 'brake':
+            scale = random.uniform(1,vel_interval)
+            sens = scale/period
+            speed_list = speed_list + [start_vel+ scale - sens * time_step * i for i in range(0,period)]
+
+
+        elif control == 'acc':
+            scale = random.uniform(1,vel_interval)
+            sens = scale/period
+            speed_list = speed_list + [start_vel + sens * time_step * i for i in range(0,period)]
+
+        elif control == 'sin':
+            amplitude = random.uniform(0,vel_interval/2)
+            speed_list = speed_list + [start_vel + vel_interval/2 + amplitude * m.sin(i/period*2*m.pi) for i in range(0,period)] 
         
-        long = random.choice(longitutal_list)
-        lat = random.choice(lateral_list)
-        last_vel = lat_control[-1]
-        last_steer = long_control[-1]
-        period = random.randint(1,15)
-        now_time = next_time
-        next_time = now_time + period
-        if next_time > end_time:
-            next_time = end_time
-            period = end_time - now_time
+        elif control =='fix':
+            speed_list = speed_list + [random.uniform(start_vel,start_vel+vel_interval) for i in range(0,period)]
 
-        timelist = list(range(int(10*now_time),int(10*next_time),int(10*time_step)))
-        timelist = list(map(lambda x: round(x*0.1,2),timelist))
-        time = time + timelist
+    return speed_list          
 
-        if lat == 'fix':
-            steer = random.randint(-30,30)
+    
+
+def generate_lateral_control(max_steer, end_time, time_step, lateral_list):
+    period_list = generate_period_list(end_time,time_step)
+    control = random.choice(lateral_list)
+    steer_list = []
+    for period in period_list:
+        if control == 'fix':
+            steer = random.randint(-max_steer,max_steer)
             steer_rad = steer * m.pi/180
-            steer_list = [steer_rad for i in range(0,len(timelist))]
-        elif lat == 'sin':
-            amplitude = random.randint(-30,30)
-            amplitude_rad = amplitude * m.pi/180
-            steer_list =[amplitude_rad * m.sin(i/len(timelist)*2*m.pi) for i in range(0,len(timelist))]
+            steer_list = steer_list + [steer_rad for i in range(0,period)]
+        elif control == 'sin':
+            amplitude = random.randint(-max_steer,max_steer)
+            amplitude_rad = max_steer * m.pi/180
+            steer_list = steer_list + [amplitude_rad * m.sin(i/period*2*m.pi) for i in range(0,period)]
 
-        lat_control = lat_control + steer_list
-
-
-
-        if long == 'brake':
-                sens = 5/period
-                speed_list = [start_vel+ 5 - sens * time_step * i for i in range(0,len(timelist))]
-
-        elif long == 'acc':
-                sens = 5/period
-                speed_list = [start_vel + sens * time_step * i for i in range(0,len(timelist))]
-        elif long =='fix':
-            speed_list = [start_vel + random.uniform(-5,5) for i in range(0,len(timelist))]
-
-        elif long == 'sin':
-            amplitude = random.uniform(0,2.5)
-            speed_list = [start_vel + 2.5 + amplitude * m.sin(i/len(timelist)*2*m.pi) for i in range(0,len(timelist))]
-        long_control = long_control + speed_list
-
-    time.append(end_time)
+    return steer_list
 
 
+def make_path(start_vel,vel_interval, end_time=200, longitutal_list=None, lateral_list=None):
+    start_time = 0
+    time_step = 0.1
+    max_steer = 30
+    time_sample_num = end_time/time_step + 1
+    if longitutal_list is None:
+        longitutal_list = ['brake', 'acc', 'fix', 'sin']
+    if lateral_list is None:
+        lateral_list = ['fix', 'sin']
 
+    # Rest of your code...
+
+    # Modify the function to use the external functions
+    long_control = generate_longitudinal_control(start_vel, vel_interval,end_time, time_step, longitutal_list)
+    lat_control = generate_lateral_control(max_steer, end_time, time_step, lateral_list)
+    time = [0,end_time,time_step]
+    # Write to file
     value_string ='#TIme steer velocity\n'
-
     for i in range(len(time)):
         value_string = value_string + str(time[i]) + ' ' +str(lat_control[i]) + ' ' + str(long_control[i])+'\n'
-
-
 
     with open('D:/TV/FCM_Projects_JM/FS_race/Siminput/values_'+str(start_vel)+'.csv','w') as file:
         file.write(value_string)
 
 if __name__ == "__main__":
-    ## parser setting
-    start_vel = range(5,35,5)
-    for i in start_vel:
-        make_path(start_vel=i)
+    # Use default values or specify your own
+    vel_interval = 4
+    cnt = 1 
+    max_vel = 0
+    while True :
+        
+        temp_max_vel = vel_interval * cnt
+        if temp_max_vel > 30 :
+            break
+        else:
+            max_vel = temp_max_vel
+        
+        cnt += 1
+
+    
+    start_vel_range = range(vel_interval, max_vel, vel_interval)
+    
+    for start_vel in start_vel_range:
+        make_path(start_vel, vel_interval)
