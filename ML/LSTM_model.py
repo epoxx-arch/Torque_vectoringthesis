@@ -10,6 +10,7 @@ import os
 from datetime import datetime
 import numpy as np
 import torch.autograd.profiler as profiler
+import matplotlib.pyplot as plt 
 
 # Custom Dataset class for handling input data and labels
 class CustomDataset(Dataset):
@@ -64,15 +65,20 @@ class EstimationMy:
 
         torch.cuda.set_device(self.device)
 
-    def normalization(self, data,min_value=0, max_value=1):
+    def normalization(self,data,indices_tag):
         # Normalize the input data
-        min_val = np.min(data)
-        max_val = np.max(data)
-
+        data_shape = data.shape
+        data = np.reshape(data,(-1,data.shape[-1]))
+        min_val = np.min(data,axis=0)
+        max_val = np.max(data,axis=0)
+        min_value = np.zeros(shape = np.size(min_val))
+        max_value = np.ones(shape = np.size(max_val))
+        indices = indices_tag + ' Min_Value :' + str(min_val) + 'Max_Value : ' + str(max_val) +'\n'
         scaled_data = min_value + (max_value - min_value) * (data - min_val) / (max_val - min_val)
-        return scaled_data
-
-
+        scaled_data = np.reshape(scaled_data,data_shape)
+        return scaled_data, indices
+        
+        
     def denormalization(self, scaled_data,original_data):
 
         min_val = np.min(original_data)
@@ -93,9 +99,13 @@ class EstimationMy:
 
         # Print the denormalized outputs and labels for comparison
         print("Denormalized Outputs:")
-        print(outputs_denorm)
+        print(outputs_denorm[0:10,:])
         print("Denormalized Labels:")
-        print(labels_denorm)   
+        print(labels_denorm[0:10,:])
+
+        plt.plot(outputs_denorm,'r',labels_denorm,'b')
+        # plt.show()
+          
 
     def make_dir(self, log_dir, pt_dir):
         # Create directories for logs and saved models
@@ -109,40 +119,35 @@ class EstimationMy:
         file_list = os.listdir(data_path)
         data_X = []
         data_Y = []
-        for file in file_list:
+        print("importing Data Start")
+        for idx, file in enumerate(file_list):
             input_path = data_path + '/' + file
             data = pd.read_csv(input_path)
             y = data.pop(str(data.columns[-1])).values
-
-            data = torch.tensor(data.values, dtype=torch.float32)
-            # data = self.normalization(data)
             
+            data = torch.tensor(data.values, dtype=torch.float32)
             y = torch.tensor(y, dtype=torch.float32)
-            # y = self.normalization(y)
-
+            
             for i in range(0, len(data) - seq_len):
-                if i + seq_len > len(data):
-                    break
-                else:
-                    _x = data[i:i + seq_len, :]
-                    _y = y[i + seq_len-1]
-
+                _x = data[i:i + seq_len, :]
+                _y = np.array([y[i + seq_len-1]])
                 data_X.append(_x)
                 data_Y.append(_y)
 
-            return data_X, data_Y
+        return data_X, data_Y
 
         
 
-    def data_loader(self, data_path, batch_size=32, seq_len=50, split=0.2):
+    def data_loader(self, data_path,indices_path, batch_size=32, seq_len=50, split=0.8):
         # Load and preprocess data, create data loaders for training and validation
         self.seq_len = seq_len
         data_X, data_Y = self.import_data(seq_len=self.seq_len, data_path=data_path)
-
         self.np_x = np.array(data_X)
         self.np_y = np.array(data_Y)
-        data_X = torch.FloatTensor(self.normalization(self.np_x))
-        data_Y = torch.FloatTensor(self.normalization(self.np_y))
+        norm_x, indices_x =  self.normalization(self.np_x,'x')
+        norm_y, indices_y =  self.normalization(self.np_y,'y')
+        data_X = torch.FloatTensor(norm_x)
+        data_Y = torch.FloatTensor(norm_y)
 
 
 
@@ -154,11 +159,15 @@ class EstimationMy:
 
         self.train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         self.val_loader = DataLoader(val_dataset, batch_size=batch_size)
+        os.makedirs(indices_path, exist_ok=True)
+        with open(indices_path+'indices.csv','w') as file:
+            file.write(indices_x+indices_y)
+
 
     def check_the_dataset(self):
         # Check the structure of the data loader
-        print(self.train_loader)
-        print(next(iter(self.train_loader)))
+        print(len(self.train_loader))
+        # print(next(iter(self.train_loader)))
 
     def model_setting(self, hidden_size, output_size=1, num_layers=1):
         # Initialize the LSTM model
@@ -172,23 +181,35 @@ class EstimationMy:
         # Set training parameters including learning rate and loss function
         self.criterion = loss
         self.lr = lr
-        self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=self.lr)
 
     def save_checkpoint(self, filename):
         # Save the model checkpoint
         torch.save(self.model, filename)
 
+    def check_the_trained_model(self,pt_path):
+        pt_list = os.listdir(os.path.join(pt_path,str(self.hidden_size)))
+        pt_file = pt_list[-1]
+        model_pt =torch.load(os.path.join(pt_path,str(self.hidden_size),pt_file),map_location=self.device)
+        with torch.no_grad():
+                    inputs, labels = next(iter(self.train_loader))
+                    outputs = model_pt(inputs)
+                    self.check_output_with_denormalization(outputs,labels)
     def train(self, epochs):
         # Train the model for a specified number of epochs
         self.loss_log = []
         for epoch in tqdm(range(epochs)):
+            if epoch % 100 == 0:
+                self.train_setting(lr=self.lr * 0.1)
+            elif epoch == 400:
+                self.train_setting(lr=self.lr * 0.1)
             total_train_loss = 0
             self.model.train()
             for inputs, labels in self.train_loader:
                 self.model.reset_hidden_state()
                 self.optimizer.zero_grad()
                 outputs = self.model(inputs)
-                labels = torch.unsqueeze(labels,dim=1)
+                # labels = torch.unsqueeze(labels,dim=1)
                 train_loss = self.criterion(outputs, labels)
                 train_loss.backward()
                 self.optimizer.step()
@@ -202,20 +223,17 @@ class EstimationMy:
                 val_loss = 0
                 for inputs, labels in self.val_loader:
                     outputs = self.model(inputs)
-                    labels = torch.unsqueeze(labels,dim=1)
+                    # labels = torch.unsqueeze(labels,dim=1)
                     val_loss += self.criterion(outputs, labels).item()
                 avg_val_loss = val_loss / len(self.val_loader)
-
-            self.loss_log.append([avg_train_loss, avg_val_loss])
-
-            if epoch % 10 == 0 :
+            # Check the test Result
+            if epoch % 50 == 0 :
                 with torch.no_grad():
                     inputs, labels = next(iter(self.train_loader))
-                    with profiler.profile(with_stack=True,use_cuda= True, profile_memory= True) as prof:
-                        outputs = self.model(inputs)
-                    print(prof.key_averages().table(row_limit=1))
-                    labels = torch.unsqueeze(labels,dim=1)
+                    outputs = self.model(inputs)
                     self.check_output_with_denormalization(outputs,labels)
+
+            self.loss_log.append([avg_train_loss, avg_val_loss])
 
             print(f'Epoch {epoch + 1}, Loss: {avg_train_loss:.4f}, Validation Loss: {avg_val_loss:.4f}')
             self.save_checkpoint(os.path.join(self.pt_dir, f'model_epoch_{epoch}.pt'))
@@ -225,27 +243,32 @@ class EstimationMy:
 if __name__ == "__main__":
     try:
         # Hyperparameters
-        batch_size = 2
-        lr = 1e-4
-        hidden_size = 20
+        batch_size = 512
+        lr = 1e-3
+        hidden_size = 10
 
-        epochs = 500
+        epochs = 1000
 
         # File paths
         today = datetime.today()
-        data_path = os.path.join('Data','2024_01_27', 'random_torque_vectoring')
+        data_path = os.path.join('Data','ML', 'ALL_data')
         log_dir = os.path.join('Data/ML', str(today.date()), 'log')
         pt_dir = os.path.join('Data/ML', str(today.date()), "pt")
-
+        Normalization_dir = os.path.join('Data/ML', str(today.date()), "Normalization_value")
+        
         # Create an instance of EstimationMy
         model = EstimationMy()
 
         # Load and preprocess data, create model, set training parameters, create directories, and train the model
-        model.data_loader(data_path, batch_size=batch_size)
+        model.data_loader(data_path,Normalization_dir, batch_size=batch_size)
+        # model.check_the_dataset()
         model.model_setting(hidden_size=hidden_size)
         model.train_setting()
         model.make_dir(pt_dir=pt_dir,log_dir=log_dir)
-        # model.check_the_dataset()
+        
+        
+        # model.check_the_trained_model(pt_dir)
+        
         model.train(epochs=epochs)
 
     except KeyboardInterrupt:

@@ -93,9 +93,12 @@ def make_path(start_vel,vel_interval, end_time=200, longitutal_list=None, latera
 
 if __name__ == "__main__":
     # Use default values or specify your own
-    vel_interval = 8
+    vel_interval = 6
     cnt = 1 
     max_vel = 0
+
+
+
     while True :
         
         temp_max_vel = vel_interval * cnt

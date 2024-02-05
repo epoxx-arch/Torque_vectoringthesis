@@ -44,9 +44,7 @@ def preprocessing(input_path,output_path):
         "motor_trq_FR": motor_trq_FR,
         "motor_trq_RL": motor_trq_RL,
         "motor_trq_RR": motor_trq_RR,
-        "ax": ax,
         "ay": ay,
-        "az": az,
         "Roll_Vel": Roll_Vel,
         "Yaw_Vel": Yaw_Vel,
         "Car.Con.v" : Vel,
@@ -60,8 +58,8 @@ def preprocessing(input_path,output_path):
 
 if __name__ == "__main__":
 
-    path = 'D:/TV/FCM_Projects_JM/FS_race/SimOutput/DESKTOP-00IBLK8/20240129'
-    output_path = 'Data/2024_01_29/random_torque_vectoring'
+    path = 'D:/TV/FCM_Projects_JM/FS_race/SimOutput/DESKTOP-00IBLK8/20240130/torque_random'
+    output_path = 'Data/2024_01_30/torque_random'
     #path = "Data/CM_data"
     #output_path = 'Data/'
     os.makedirs(output_path, exist_ok=True)
