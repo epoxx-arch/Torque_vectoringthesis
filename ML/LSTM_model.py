@@ -10,7 +10,8 @@ import os
 from datetime import datetime
 import numpy as np
 import torch.autograd.profiler as profiler
-import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt
+import torch.onnx
 
 # Custom Dataset class for handling input data and labels
 class CustomDataset(Dataset):
@@ -24,7 +25,7 @@ class CustomDataset(Dataset):
     def __getitem__(self, idx):
         return self.x[idx], self.y[idx]
 
-# LSTM model class for estimation
+# LSTM model class for estimationcond
 class EstimationLSTM(nn.Module):
     def __init__(self, input_size, hidden_size, output_size, seq_len, num_layers):
         super(EstimationLSTM, self).__init__()
@@ -64,25 +65,34 @@ class EstimationMy:
             self.device = torch.device('cpu')
 
         torch.cuda.set_device(self.device)
+        self.x_min_value =  np.array([-0.53, 0, 0, 0, 0, -30, -0.26, -1.6, 0])
+        self.y_min_value = np.array([-2400])
+        self.x_max_value =  np.array([0.53, 30, 30, 30, 30, 30, 0.26, 1.6, 35])
+        self.y_max_value = np.array([2400])
 
-    def normalization(self,data,indices_tag):
+    def normalization(self,data,min_val,max_val):
         # Normalize the input data
         data_shape = data.shape
         data = np.reshape(data,(-1,data.shape[-1]))
-        min_val = np.min(data,axis=0)
-        max_val = np.max(data,axis=0)
+
         min_value = np.zeros(shape = np.size(min_val))
         max_value = np.ones(shape = np.size(max_val))
-        indices = indices_tag + ' Min_Value :' + str(min_val) + 'Max_Value : ' + str(max_val) +'\n'
         scaled_data = min_value + (max_value - min_value) * (data - min_val) / (max_val - min_val)
-        scaled_data = np.reshape(scaled_data,data_shape)
-        return scaled_data, indices
-        
-        
-    def denormalization(self, scaled_data,original_data):
 
-        min_val = np.min(original_data)
-        max_val = np.max(original_data)
+        negative_indices = scaled_data < 0
+        scaled_data[negative_indices] = 0
+
+        over_indices = scaled_data > 1
+        scaled_data[over_indices] = 1
+
+        scaled_data = np.reshape(scaled_data,data_shape)
+        return scaled_data
+        
+        
+    def denormalization(self, scaled_data):
+
+        min_val = self.y_min_value
+        max_val = self.y_max_value
 
         denormalized_data = min_val + (max_val - min_val) * (scaled_data)
 
@@ -107,12 +117,14 @@ class EstimationMy:
         # plt.show()
           
 
-    def make_dir(self, log_dir, pt_dir):
+    def make_dir(self, log_dir, pt_dir, onnx_dir):
         # Create directories for logs and saved models
         self.pt_dir = os.path.join(pt_dir, str(self.hidden_size))
         self.log_dir = log_dir
+        self.onnx_dir = onnx_dir
         os.makedirs(self.log_dir, exist_ok=True)
         os.makedirs(self.pt_dir, exist_ok=True)
+        os.makedirs(self.onnx_dir, exist_ok=True)
 
     def import_data(self,seq_len,data_path):
         
@@ -124,31 +136,27 @@ class EstimationMy:
             input_path = data_path + '/' + file
             data = pd.read_csv(input_path)
             y = data.pop(str(data.columns[-1])).values
-            
-            data = torch.tensor(data.values, dtype=torch.float32)
-            y = torch.tensor(y, dtype=torch.float32)
-            
+            data = data.values
             for i in range(0, len(data) - seq_len):
                 _x = data[i:i + seq_len, :]
                 _y = np.array([y[i + seq_len-1]])
                 data_X.append(_x)
                 data_Y.append(_y)
-
         return data_X, data_Y
 
         
 
-    def data_loader(self, data_path,indices_path, batch_size=32, seq_len=50, split=0.8):
+    def data_loader(self, data_path, batch_size=32, seq_len=50, split=0.8):
         # Load and preprocess data, create data loaders for training and validation
         self.seq_len = seq_len
+        self.batch_size = batch_size
         data_X, data_Y = self.import_data(seq_len=self.seq_len, data_path=data_path)
         self.np_x = np.array(data_X)
         self.np_y = np.array(data_Y)
-        norm_x, indices_x =  self.normalization(self.np_x,'x')
-        norm_y, indices_y =  self.normalization(self.np_y,'y')
+        norm_x=  self.normalization(self.np_x,self.x_min_value,self.x_max_value)
+        norm_y =  self.normalization(self.np_y,self.y_min_value,self.y_max_value)
         data_X = torch.FloatTensor(norm_x)
         data_Y = torch.FloatTensor(norm_y)
-
 
 
         data_X = data_X.to(self.device)
@@ -159,9 +167,6 @@ class EstimationMy:
 
         self.train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         self.val_loader = DataLoader(val_dataset, batch_size=batch_size)
-        os.makedirs(indices_path, exist_ok=True)
-        with open(indices_path+'indices.csv','w') as file:
-            file.write(indices_x+indices_y)
 
 
     def check_the_dataset(self):
@@ -183,9 +188,14 @@ class EstimationMy:
         self.lr = lr
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.lr)
 
-    def save_checkpoint(self, filename):
+    def save_checkpoint(self, pt_name,onnx_name):
         # Save the model checkpoint
-        torch.save(self.model, filename)
+        torch.save(self.model, pt_name)
+        dummy_input = torch.randn(self.batch_size,self.seq_len,self.input_size).to(device=self.device)
+        torch.onnx.export(self.model,dummy_input,onnx_name,export_params=True,
+                        opset_version= 10, 
+                        input_names=['Modelinput'],
+                        output_names=['Modeloutput'])
 
     def check_the_trained_model(self,pt_path):
         pt_list = os.listdir(os.path.join(pt_path,str(self.hidden_size)))
@@ -236,7 +246,9 @@ class EstimationMy:
             self.loss_log.append([avg_train_loss, avg_val_loss])
 
             print(f'Epoch {epoch + 1}, Loss: {avg_train_loss:.4f}, Validation Loss: {avg_val_loss:.4f}')
-            self.save_checkpoint(os.path.join(self.pt_dir, f'model_epoch_{epoch}.pt'))
+            self.save_checkpoint(os.path.join(self.pt_dir, f'model_epoch_{epoch}.pt'),os.path.join(self.onnx_dir, f'model_epoch_{epoch}.onnx'))
+
+            
 
 
 
@@ -254,19 +266,17 @@ if __name__ == "__main__":
         data_path = os.path.join('Data','ML', 'ALL_data')
         log_dir = os.path.join('Data/ML', str(today.date()), 'log')
         pt_dir = os.path.join('Data/ML', str(today.date()), "pt")
-        Normalization_dir = os.path.join('Data/ML', str(today.date()), "Normalization_value")
+        onnx_dir = os.path.join('Data/ML', str(today.date()), "onnx")
         
         # Create an instance of EstimationMy
         model = EstimationMy()
 
         # Load and preprocess data, create model, set training parameters, create directories, and train the model
-        model.data_loader(data_path,Normalization_dir, batch_size=batch_size)
+        model.data_loader(data_path, batch_size=batch_size)
         # model.check_the_dataset()
         model.model_setting(hidden_size=hidden_size)
         model.train_setting()
-        model.make_dir(pt_dir=pt_dir,log_dir=log_dir)
-        
-        
+        model.make_dir(pt_dir=pt_dir,log_dir=log_dir,onnx_dir = onnx_dir)        
         # model.check_the_trained_model(pt_dir)
         
         model.train(epochs=epochs)
