@@ -104,8 +104,8 @@ class EstimationMy:
         labels_np = labels.cpu().detach().numpy()
 
         # Denormalize the outputs and labels
-        outputs_denorm = self.denormalization(outputs_np,self.np_y)
-        labels_denorm = self.denormalization(labels_np,self.np_y)
+        outputs_denorm = self.denormalization(outputs_np)
+        labels_denorm = self.denormalization(labels_np)
 
         # Print the denormalized outputs and labels for comparison
         print("Denormalized Outputs:")
@@ -120,8 +120,8 @@ class EstimationMy:
     def make_dir(self, log_dir, pt_dir, onnx_dir):
         # Create directories for logs and saved models
         self.pt_dir = os.path.join(pt_dir, str(self.hidden_size))
-        self.log_dir = log_dir
-        self.onnx_dir = onnx_dir
+        self.log_dir = os.path.join(log_dir, str(self.hidden_size))
+        self.onnx_dir = os.path.join(onnx_dir, str(self.hidden_size))
         os.makedirs(self.log_dir, exist_ok=True)
         os.makedirs(self.pt_dir, exist_ok=True)
         os.makedirs(self.onnx_dir, exist_ok=True)
@@ -196,6 +196,12 @@ class EstimationMy:
                         opset_version= 10, 
                         input_names=['Modelinput'],
                         output_names=['Modeloutput'])
+    def save_log(self,list):
+        # List is the n*2 matrix list that contains logs
+        logs =np.array(list)
+        log_df = pd.DataFrame(logs,columns=["Test",'Validation'])
+        log_df.to_csv(self.log_dir)
+
 
     def check_the_trained_model(self,pt_path):
         pt_list = os.listdir(os.path.join(pt_path,str(self.hidden_size)))
@@ -247,7 +253,9 @@ class EstimationMy:
 
             print(f'Epoch {epoch + 1}, Loss: {avg_train_loss:.4f}, Validation Loss: {avg_val_loss:.4f}')
             self.save_checkpoint(os.path.join(self.pt_dir, f'model_epoch_{epoch}.pt'),os.path.join(self.onnx_dir, f'model_epoch_{epoch}.onnx'))
-
+        print("Train_end")
+        
+        
             
 
 
@@ -257,9 +265,9 @@ if __name__ == "__main__":
         # Hyperparameters
         batch_size = 512
         lr = 1e-3
-        hidden_size = 10
+        hidden_size = [10,9,8,7,6,5,4]
 
-        epochs = 1000
+        epochs = 500
 
         # File paths
         today = datetime.today()
@@ -267,19 +275,17 @@ if __name__ == "__main__":
         log_dir = os.path.join('Data/ML', str(today.date()), 'log')
         pt_dir = os.path.join('Data/ML', str(today.date()), "pt")
         onnx_dir = os.path.join('Data/ML', str(today.date()), "onnx")
-        
         # Create an instance of EstimationMy
-        model = EstimationMy()
-
-        # Load and preprocess data, create model, set training parameters, create directories, and train the model
-        model.data_loader(data_path, batch_size=batch_size)
-        # model.check_the_dataset()
-        model.model_setting(hidden_size=hidden_size)
-        model.train_setting()
-        model.make_dir(pt_dir=pt_dir,log_dir=log_dir,onnx_dir = onnx_dir)        
-        # model.check_the_trained_model(pt_dir)
-        
-        model.train(epochs=epochs)
+        for hidden in hidden_size:
+            model = EstimationMy()
+            # Load and preprocess data, create model, set training parameters, create directories, and train the model
+            model.data_loader(data_path, batch_size=batch_size)
+            # model.check_the_dataset()
+            model.model_setting(hidden_size=hidden)
+            model.train_setting()
+            model.make_dir(pt_dir=pt_dir,log_dir=log_dir,onnx_dir = onnx_dir)        
+            # model.check_the_trained_model(pt_dir)
+            model.train(epochs=epochs)
 
     except KeyboardInterrupt:
         print("Canceld by user...")
