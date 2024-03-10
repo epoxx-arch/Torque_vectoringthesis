@@ -12,6 +12,7 @@ import numpy as np
 import torch.autograd.profiler as profiler
 import matplotlib.pyplot as plt
 import torch.onnx
+from torch.profiler import profile, record_function, ProfilerActivity
 
 # Custom Dataset class for handling input data and labels
 class CustomDataset(Dataset):
@@ -41,6 +42,8 @@ class EstimationLSTM(nn.Module):
 
     def forward(self, x):
         # Forward pass through LSTM and fully connected layer
+
+
         with profiler.record_function("LSTM"):
             out, _ = self.lstm(x)
             out = self.fc(out[:, -1])
@@ -119,9 +122,9 @@ class EstimationMy:
 
     def make_dir(self, log_dir, pt_dir, onnx_dir):
         # Create directories for logs and saved models
-        self.pt_dir = os.path.join(pt_dir, str(self.hidden_size))
-        self.log_dir = os.path.join(log_dir, str(self.hidden_size))
-        self.onnx_dir = os.path.join(onnx_dir, str(self.hidden_size))
+        self.pt_dir = os.path.join(pt_dir, str(self.hidden_size),str(self.layer_size))
+        self.log_dir = os.path.join(log_dir, str(self.hidden_size),str(self.layer_size))
+        self.onnx_dir = os.path.join(onnx_dir, str(self.hidden_size),str(self.layer_size))
         os.makedirs(self.log_dir, exist_ok=True)
         os.makedirs(self.pt_dir, exist_ok=True)
         os.makedirs(self.onnx_dir, exist_ok=True)
@@ -177,10 +180,14 @@ class EstimationMy:
     def model_setting(self, hidden_size, output_size=1, num_layers=1):
         # Initialize the LSTM model
         self.hidden_size = hidden_size
+        self.layer_size = num_layers
         sample_batch = next(iter(self.train_loader))
         self.input_size = sample_batch[0].shape[2]
         self.model = EstimationLSTM(self.input_size, self.hidden_size, output_size, self.seq_len, num_layers)
+        self.check_model = EstimationLSTM(self.input_size, self.hidden_size, output_size, self.seq_len, num_layers)
+    
         self.model.to(self.device)
+        self.check_model.to('cpu')
 
     def train_setting(self, lr=1e-4, loss=nn.MSELoss()):
         # Set training parameters including learning rate and loss function
@@ -200,7 +207,7 @@ class EstimationMy:
         # List is the n*2 matrix list that contains logs
         logs =np.array(list)
         log_df = pd.DataFrame(logs,columns=["Test",'Validation'])
-        log_df.to_csv(self.log_dir)
+        log_df.to_csv(self.log_dir+'/log.csv')
 
 
     def check_the_trained_model(self,pt_path):
@@ -211,6 +218,19 @@ class EstimationMy:
                     inputs, labels = next(iter(self.train_loader))
                     outputs = model_pt(inputs)
                     self.check_output_with_denormalization(outputs,labels)
+
+    def computing_time_calculation(self):
+        inputs = torch.randn(1,1,9)
+        with profile(activities=[ProfilerActivity.CPU],
+                profile_memory=True, record_shapes=True) as prof:
+            self.check_model(inputs)
+
+        print(prof.key_averages().table(sort_by="self_cpu_memory_usage", row_limit=10))
+        prof.export_chrome_trace(os.path.join(self.log_dir,'trace.json'))
+
+
+
+
     def train(self, epochs):
         # Train the model for a specified number of epochs
         self.loss_log = []
@@ -254,6 +274,9 @@ class EstimationMy:
             print(f'Epoch {epoch + 1}, Loss: {avg_train_loss:.4f}, Validation Loss: {avg_val_loss:.4f}')
             self.save_checkpoint(os.path.join(self.pt_dir, f'model_epoch_{epoch}.pt'),os.path.join(self.onnx_dir, f'model_epoch_{epoch}.onnx'))
         print("Train_end")
+
+        self.save_log(self.loss_log)
+        self.computing_time_calculation()
         
         
             
@@ -263,11 +286,12 @@ class EstimationMy:
 if __name__ == "__main__":
     try:
         # Hyperparameters
-        batch_size = 512
+        batch_size = 256
         lr = 1e-3
-        hidden_size = [10,9,8,7,6,5,4]
+        hidden_size = [i for i in range(10,31)]
+        layer_size = [i for i in range(1,3)]
 
-        epochs = 500
+        epochs = 1
 
         # File paths
         today = datetime.today()
@@ -275,17 +299,20 @@ if __name__ == "__main__":
         log_dir = os.path.join('Data/ML', str(today.date()), 'log')
         pt_dir = os.path.join('Data/ML', str(today.date()), "pt")
         onnx_dir = os.path.join('Data/ML', str(today.date()), "onnx")
+
+
         # Create an instance of EstimationMy
         for hidden in hidden_size:
-            model = EstimationMy()
-            # Load and preprocess data, create model, set training parameters, create directories, and train the model
-            model.data_loader(data_path, batch_size=batch_size)
-            # model.check_the_dataset()
-            model.model_setting(hidden_size=hidden)
-            model.train_setting()
-            model.make_dir(pt_dir=pt_dir,log_dir=log_dir,onnx_dir = onnx_dir)        
-            # model.check_the_trained_model(pt_dir)
-            model.train(epochs=epochs)
+            for layer in layer_size:
+                model = EstimationMy()
+                # Load and preprocess data, create model, set training parameters, create directories, and train the model
+                model.data_loader(data_path, batch_size=batch_size)
+                # model.check_the_dataset()
+                model.model_setting(hidden_size=hidden,num_layers=layer)
+                model.train_setting()
+                model.make_dir(pt_dir=pt_dir,log_dir=log_dir,onnx_dir = onnx_dir)        
+                # model.check_the_trained_model(pt_dir)
+                model.train(epochs=epochs)
 
     except KeyboardInterrupt:
         print("Canceld by user...")

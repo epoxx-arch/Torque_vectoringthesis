@@ -1,9 +1,9 @@
 clc; clear all
-addpath("C:\Users\User\Desktop\Code\TV\Data\ML\2024-02-06\onnx")
+addpath("C:\Users\User\Desktop\Code\TV\Data\ML\2024-03-04\onnx\30\1\")
 
-Pytorch_net = importONNXNetwork("model_epoch_999.onnx","TargetNetwork","dlnetwork");
+Pytorch_net = importONNXNetwork("model_epoch_499.onnx","TargetNetwork","dlnetwork");
 numFeatures = 9;
-numHidden = 10;
+numHidden = 30;
 
 Layers = Pytorch_net.Layers;
 
