@@ -1,5 +1,4 @@
-c
-Copy code
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -12,12 +11,12 @@ typedef struct {
 } LSTMState;
 
 // Sigmoid activation function.
-static float sigmoid(float x) {
+static inline float sigmoid(float x) {
     return 1 / (1 + exp(-x));
 }
 
 // Hyperbolic tangent activation function.
-static float tanh_activation(float x) {
+static inline float tanh_activation(float x) {
     return tanh(x);
 }
 

@@ -13,7 +13,7 @@ import torch.autograd.profiler as profiler
 import matplotlib.pyplot as plt
 import torch.onnx
 from torch.profiler import profile, record_function, ProfilerActivity
-
+from pthflops import count_ops
 # Custom Dataset class for handling input data and labels
 class CustomDataset(Dataset):
     def __init__(self, x, y):
@@ -219,14 +219,14 @@ class EstimationMy:
                     outputs = model_pt(inputs)
                     self.check_output_with_denormalization(outputs,labels)
 
-    def computing_time_calculation(self):
+    def computing_time_calculation(self,epoch):
         inputs = torch.randn(1,1,9)
+        flops = count_ops(self.check_model,inputs)
+        print(flops)
         with profile(activities=[ProfilerActivity.CPU],
                 profile_memory=True, record_shapes=True) as prof:
             self.check_model(inputs)
-
-        print(prof.key_averages().table(sort_by="self_cpu_memory_usage", row_limit=10))
-        prof.export_chrome_trace(os.path.join(self.log_dir,'trace.json'))
+        prof.export_chrome_trace(os.path.join(self.log_dir,'trace'+str(epoch)+'.json'))
 
 
 
@@ -273,14 +273,10 @@ class EstimationMy:
 
             print(f'Epoch {epoch + 1}, Loss: {avg_train_loss:.4f}, Validation Loss: {avg_val_loss:.4f}')
             self.save_checkpoint(os.path.join(self.pt_dir, f'model_epoch_{epoch}.pt'),os.path.join(self.onnx_dir, f'model_epoch_{epoch}.onnx'))
+            self.computing_time_calculation(epoch)
         print("Train_end")
 
         self.save_log(self.loss_log)
-        self.computing_time_calculation()
-        
-        
-            
-
 
 
 if __name__ == "__main__":
@@ -291,7 +287,7 @@ if __name__ == "__main__":
         hidden_size = [i for i in range(10,31)]
         layer_size = [i for i in range(1,3)]
 
-        epochs = 1
+        epochs = 1000
 
         # File paths
         today = datetime.today()

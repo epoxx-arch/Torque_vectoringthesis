@@ -80,6 +80,7 @@ def make_path(start_vel,vel_interval, end_time=200, longitutal_list=None, latera
     # Modify the function to use the external functions
     long_control = generate_longitudinal_control(start_vel, vel_interval,end_time, time_step, longitutal_list)
     lat_control = generate_lateral_control(max_steer, end_time, time_step, lateral_list)
+    lat_control = [0 for i in range(len(long_control))]
     time = list(range(int(0),int(10*end_time),int(10*time_step)))
     time = list(map(lambda x: round(x*0.1,2),time))
     time.append(end_time)
