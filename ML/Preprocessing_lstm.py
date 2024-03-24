@@ -10,17 +10,16 @@ def preprocessing(input_path,output_path):
     # Convert all values to numeric
     df = df.apply(pd.to_numeric, errors='coerce').astype(float)
     
-    # Select_only Time sample 0.1
-    df = df.drop(index=range(0, 2))
-    selected_rows_indices = list(range(10, len(df), 10))
-    df = df.iloc[selected_rows_indices]
+    # discrat_the first Time 0.1 & end time 1s
+    df = df.drop(index=range(0, 10))
+    df = df.drop(index=range(len(df)-100, len(df)))
 
     # Extract specific columns and convert them to lists
     FyFL, FyFR, FyRL, FyRR = [df.pop(f'Car.Fy{i}') for i in ['FL', 'FR', 'RL', 'RR']]
     steer_angleFL, steer_angleFR = [df.pop(f'Car.SteerAngle{i}') for i in ['FL', 'FR']]
     Trq_alignFL, Trq_alignFR, Trq_alignRL, Trq_alignRR = [df.pop(f'Car.TrqAlign{i}') for i in ['FL', 'FR', 'RL', 'RR']]
     # Calculate 'steer' as the sum of 'steer_angleFL' and 'steer_angleFR'
-    steer = steer_angleFL + steer_angleFR
+    steer = (steer_angleFL + steer_angleFR)/2
     # Calculate 'My' using vectorized operations
     tr, lf, lr = 0.621, 0.813, 0.787
     My = (FyFL - FyFR) * np.sin(steer) * tr + (FyFR + FyFL) * np.cos(steer) * lf - (FyRR + FyRL) * lr - Trq_alignFL - Trq_alignFR - Trq_alignRL - Trq_alignRR
@@ -35,20 +34,19 @@ def preprocessing(input_path,output_path):
     ax, ay, az = df.pop('Car.ax'), df.pop('Car.ay'), df.pop('Car.az')
     Roll_Vel, Yaw_Vel, Pitch_Vel = df.pop('Car.RollVel'), df.pop('Car.YawVel'), df.pop('Car.PitchVel')
     # addition Values
-    Vel = df.pop('Car.Con.v')
+    Vel = df.pop('Car.v')
     # Create a new DataFrame for the extracted data
 
     input_data = pd.DataFrame({
-        "DM.steering": DM_steering,
+        "steering_mean": steer,
         "motor_trq_FL": motor_trq_FL,
         "motor_trq_FR": motor_trq_FR,
         "motor_trq_RL": motor_trq_RL,
         "motor_trq_RR": motor_trq_RR,
         "ay": ay,
         "Roll_Vel": Roll_Vel,
-        
         "Yaw_Vel": Yaw_Vel,
-        "Car.Con.v" : Vel,
+        "Car.v" : Vel,
         "My" : My
     })
 
@@ -59,8 +57,8 @@ def preprocessing(input_path,output_path):
 
 if __name__ == "__main__":
 
-    path = 'D:/TV/FCM_Projects_JM/FS_race/SimOutput/DESKTOP-00IBLK8/20240130/torque_random'
-    output_path = 'Data/2024_01_30/torque_random'
+    path = 'D:/TV/FCM_Projects_JM/FS_race/SimOutput/DESKTOP-00IBLK8/20240321'
+    output_path = 'Data/Custom_data'
     #path = "Data/CM_data"
     #output_path = 'Data/'
     os.makedirs(output_path, exist_ok=True)

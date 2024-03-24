@@ -68,10 +68,10 @@ class EstimationMy:
             self.device = torch.device('cpu')
 
         torch.cuda.set_device(self.device)
-        self.x_min_value =  np.array([-0.53, 0, 0, 0, 0, -30, -0.26, -1.6, 0])
-        self.y_min_value = np.array([-2400])
-        self.x_max_value =  np.array([0.53, 30, 30, 30, 30, 30, 0.26, 1.6, 35])
-        self.y_max_value = np.array([2400])
+        self.x_min_value =  np.array([-0.6, 0, 0, 0, 0, -30, -1, -2, 0])
+        self.y_min_value = np.array([-4000])
+        self.x_max_value =  np.array([0.6, 30, 30, 30, 30, 30, 1, 2, 35])
+        self.y_max_value = np.array([4000])
 
     def normalization(self,data,min_val,max_val):
         # Normalize the input data
@@ -235,9 +235,11 @@ class EstimationMy:
         # Train the model for a specified number of epochs
         self.loss_log = []
         for epoch in tqdm(range(epochs)):
-            if epoch % 100 == 0:
+            if epoch == 100:
                 self.train_setting(lr=self.lr * 0.1)
-            elif epoch == 400:
+            elif epoch == 200:
+                self.train_setting(lr=self.lr * 0.1)
+            elif epoch == 300:
                 self.train_setting(lr=self.lr * 0.1)
             total_train_loss = 0
             self.model.train()
@@ -282,16 +284,17 @@ class EstimationMy:
 if __name__ == "__main__":
     try:
         # Hyperparameters
-        batch_size = 256
+        batch_size = 128
         lr = 1e-3
-        hidden_size = [i for i in range(10,31)]
-        layer_size = [i for i in range(1,3)]
+        seq_len = 200
+        hidden_size = [10,15,20,25,30]
+        layer_size = [1]
 
-        epochs = 1000
+        epochs = 400
 
         # File paths
         today = datetime.today()
-        data_path = os.path.join('Data','ML', 'ALL_data')
+        data_path = os.path.join('Data', 'Custom_data')
         log_dir = os.path.join('Data/ML', str(today.date()), 'log')
         pt_dir = os.path.join('Data/ML', str(today.date()), "pt")
         onnx_dir = os.path.join('Data/ML', str(today.date()), "onnx")
@@ -302,7 +305,7 @@ if __name__ == "__main__":
             for layer in layer_size:
                 model = EstimationMy()
                 # Load and preprocess data, create model, set training parameters, create directories, and train the model
-                model.data_loader(data_path, batch_size=batch_size)
+                model.data_loader(data_path, seq_len=seq_len,batch_size=batch_size)
                 # model.check_the_dataset()
                 model.model_setting(hidden_size=hidden,num_layers=layer)
                 model.train_setting()

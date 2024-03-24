@@ -46,7 +46,7 @@ def generate_longitudinal_control(start_vel, vel_interval,end_time, time_step,lo
 
     return speed_list          
 
-    
+
 
 def generate_lateral_control(max_steer, end_time, time_step, lateral_list):
     period_list = generate_period_list(end_time,time_step)
@@ -59,31 +59,34 @@ def generate_lateral_control(max_steer, end_time, time_step, lateral_list):
             steer_list = steer_list + [steer_rad for i in range(0,period)]
         elif control == 'sin':
             amplitude = random.randint(-max_steer,max_steer)
-            amplitude_rad = max_steer * m.pi/180
+            amplitude_rad = amplitude * m.pi/180
             steer_list = steer_list + [amplitude_rad * m.sin(i/period*2*m.pi) for i in range(0,period)]
 
     return steer_list
 
 
-def make_path(start_vel,vel_interval, end_time=200, longitutal_list=None, lateral_list=None):
+def make_path(start_vel,vel_interval, end_time=500, longitutal_list=None, lateral_list=None):
     start_time = 0
     time_step = 0.1
-    max_steer = 30
+    max_steer = 210
     time_sample_num = end_time/time_step + 1
     if longitutal_list is None:
         longitutal_list = ['brake', 'acc', 'fix', 'sin']
     if lateral_list is None:
-        lateral_list = ['fix', 'sin']
+        lateral_list = ['sin']
 
     # Rest of your code...
 
     # Modify the function to use the external functions
     long_control = generate_longitudinal_control(start_vel, vel_interval,end_time, time_step, longitutal_list)
     lat_control = generate_lateral_control(max_steer, end_time, time_step, lateral_list)
-    lat_control = [0 for i in range(len(long_control))]
     time = list(range(int(0),int(10*end_time),int(10*time_step)))
     time = list(map(lambda x: round(x*0.1,2),time))
     time.append(end_time)
+
+    for i in range(0,200):
+        long_control[i] = 20
+        lat_control[i] = 0
     # Write to file
     value_string ='#TIme steer velocity\n'
     for i in range(len(time)):
