@@ -9,7 +9,7 @@ def generate_period_list(end_time,dt):
     time_sample_num = int(end_time/dt) + 1
     period_list =[]
     while True :
-        period = random.randint(10,150)
+        period = random.randint(50,200)
         time_sample_num = time_sample_num-period
         if time_sample_num < 0 :
             period_list.append(time_sample_num+period)
@@ -42,7 +42,8 @@ def generate_longitudinal_control(start_vel, vel_interval,end_time, time_step,lo
             speed_list = speed_list + [start_vel + vel_interval/2 + amplitude * m.sin(i/period*2*m.pi) for i in range(0,period)] 
         
         elif control =='fix':
-            speed_list = speed_list + [random.uniform(start_vel,start_vel+vel_interval) for i in range(0,period)]
+            fix_speed = random.uniform(start_vel,start_vel+vel_interval)
+            speed_list = speed_list + [fix_speed for i in range(0,period)]
 
     return speed_list          
 
@@ -84,9 +85,7 @@ def make_path(start_vel,vel_interval, end_time=500, longitutal_list=None, latera
     time = list(map(lambda x: round(x*0.1,2),time))
     time.append(end_time)
 
-    for i in range(0,200):
-        long_control[i] = 20
-        lat_control[i] = 0
+ 
     # Write to file
     value_string ='#TIme steer velocity\n'
     for i in range(len(time)):
@@ -97,9 +96,12 @@ def make_path(start_vel,vel_interval, end_time=500, longitutal_list=None, latera
 
 if __name__ == "__main__":
     # Use default values or specify your own
-    vel_interval = 6
+    vel_interval = 5
     cnt = 1 
     max_vel = 0
+
+    longitutal_list = ['fix','acc','brake']
+    lateral_list = ['sin']
 
 
 
@@ -117,4 +119,4 @@ if __name__ == "__main__":
     start_vel_range = range(vel_interval, max_vel+1, vel_interval)
     
     for start_vel in start_vel_range:
-        make_path(start_vel, vel_interval)
+        make_path(start_vel, vel_interval,longitutal_list=longitutal_list)

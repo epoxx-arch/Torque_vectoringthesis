@@ -35,6 +35,12 @@ def preprocessing(input_path,output_path):
     Roll_Vel, Yaw_Vel, Pitch_Vel = df.pop('Car.RollVel'), df.pop('Car.YawVel'), df.pop('Car.PitchVel')
     # addition Values
     Vel = df.pop('Car.v')
+
+    # amount of change in My
+
+    dmy = np.diff(My)
+
+
     # Create a new DataFrame for the extracted data
 
     input_data = pd.DataFrame({
@@ -56,10 +62,9 @@ def preprocessing(input_path,output_path):
 
 
 if __name__ == "__main__":
-    name = 'track_data'
-    path = 'D:/TV/FCM_Projects_JM/FS_race/SimOutput/DESKTOP-00IBLK8/' + name
-    output_path = 'Data/' + name
 
+    path = 'D:/TV/FCM_Projects_JM/FS_race/SimOutput/DESKTOP-00IBLK8/20240331'
+    output_path = 'Data/test'
     #path = "Data/CM_data"
     #output_path = 'Data/'
     os.makedirs(output_path, exist_ok=True)
@@ -68,7 +73,7 @@ if __name__ == "__main__":
         file_name = file.split('.')
         print('Now processing :' + file_name[0])
         input_path = path + '/' + file
-        output = output_path + '/' + name + str(len(os.listdir(output_path))+1) + '.csv'
+        output = output_path + '/' + 'data'+ str(len(os.listdir(output_path))+1) + '.csv'
         preprocessing(input_path, output)
 
     print('End')

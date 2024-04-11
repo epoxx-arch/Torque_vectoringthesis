@@ -4,11 +4,9 @@ import os
 import pandas as pd
 
 # Define the directory path where the CSV files are located
-directory = './Data/Custom_Data'
+directory = './Data/Concat_data'
 
 
-# Define the directory path where the CSV files are located
-directory = './Data/Custom_Data'
 
 # Initialize a dictionary to store the max and min values for each column
 column_values = {}

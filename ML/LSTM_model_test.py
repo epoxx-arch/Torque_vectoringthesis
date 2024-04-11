@@ -239,11 +239,11 @@ class EstimationMy:
         # Train the model for a specified number of epochs
         self.loss_log = []
         for epoch in tqdm(range(epochs)):
-            if epoch == 50:
+            if epoch == 100:
                 self.train_setting(lr=self.lr * 0.1)
-            elif epoch == 100:
+            elif epoch == 200:
                 self.train_setting(lr=self.lr * 0.1)
-            elif epoch == 150:
+            elif epoch == 300:
                 self.train_setting(lr=self.lr * 0.1)
             total_train_loss = 0
             self.model.train()
@@ -281,22 +281,22 @@ class EstimationMy:
 if __name__ == "__main__":
     try:
         # Hyperparameters
-        batch_size = 16
-        lr = 1e-3
+        batch_size = 32
+        lr = 1e-4
         seq_len = 200
-        hidden = 40
-        epochs = 200
-        pretrained = True
+        hidden = [5,10,15,20,25,30,35,40]
+        epochs = 500
+        pretrained = False
 
         # File paths
         today = datetime.today()
-        data_path = os.path.join('Data', 'concat_data')
+        data_path = os.path.join('Data', 'Custom_data4')
         log_dir = os.path.join('Data/ML', str(today.date()), 'log')
         pt_dir = os.path.join('Data/ML', str(today.date()), "pt")
         onnx_dir = os.path.join('Data/ML', str(today.date()), "onnx")
 
 
-        pt_path = 'Data/ML/pretrained_model/H_40_FC_1.pt'
+        pt_path = 'Data/ML/pretrained_model/H_10_FC_1.pt'
         
         if isinstance(hidden, list):
             for hidden_size in hidden:
