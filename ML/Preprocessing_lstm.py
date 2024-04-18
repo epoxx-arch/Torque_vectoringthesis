@@ -38,16 +38,16 @@ def preprocessing(input_path,output_path):
     # Create a new DataFrame for the extracted data
 
     input_data = pd.DataFrame({
-        "steering_mean": steer[:-1],
-        "motor_trq_FL": motor_trq_FL[:-1],
-        "motor_trq_FR": motor_trq_FR[:-1],
-        "motor_trq_RL": motor_trq_RL[:-1],
-        "motor_trq_RR": motor_trq_RR[:-1],
-        "ay": ay[:-1],
-        "Roll_Vel": Roll_Vel[:-1],
-        "Yaw_Vel": Yaw_Vel[:-1],
-        "Car.v" : Vel[:-1],
-        "My" : My[1:],
+        "steering_mean": steer,
+        "motor_trq_FL": motor_trq_FL,
+        "motor_trq_FR": motor_trq_FR,
+        "motor_trq_RL": motor_trq_RL,
+        "motor_trq_RR": motor_trq_RR,
+        "ay": ay,
+        "Roll_Vel": Roll_Vel,
+        "Yaw_Vel": Yaw_Vel,
+        "Car.v" : Vel,
+        "My" : My,
     })
 
     # Export the new DataFrame to a CSV file
@@ -56,7 +56,7 @@ def preprocessing(input_path,output_path):
 
 
 if __name__ == "__main__":
-    name = 'track_data'
+    name = 'specific_data'
     path = 'D:/TV/FCM_Projects_JM/FS_race/SimOutput/DESKTOP-00IBLK8/' + name
     output_path = 'Data/' + name
 

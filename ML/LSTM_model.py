@@ -48,7 +48,8 @@ class EstimationLSTM(nn.Module):
 
 
         out, _ = self.lstm(x)
-        out = self.fc(out[:, -1])
+        out = self.fc1(out[:, -1])
+        out = self.fc2(out)
  
         return out
 
@@ -239,11 +240,11 @@ class EstimationMy:
         # Train the model for a specified number of epochs
         self.loss_log = []
         for epoch in tqdm(range(epochs)):
-            if epoch == 50:
+            if epoch == 20:
                 self.train_setting(lr=self.lr * 0.1)
-            elif epoch == 100:
+            elif epoch == 50:
                 self.train_setting(lr=self.lr * 0.1)
-            elif epoch == 150:
+            elif epoch == 70:
                 self.train_setting(lr=self.lr * 0.1)
             total_train_loss = 0
             self.model.train()
@@ -270,7 +271,7 @@ class EstimationMy:
 
             self.loss_log.append([avg_train_loss, avg_val_loss])
 
-            print(f'Epoch {epoch + 1}, Loss: {avg_train_loss:.4f}, Validation Loss: {avg_val_loss:.4f}')
+            print(f'Epoch {epoch + 1}, Loss: {avg_train_loss:.8f}, Validation Loss: {avg_val_loss:.8f}')
             self.save_checkpoint(os.path.join(self.pt_dir, f'model_epoch_{epoch}.pt'),os.path.join(self.onnx_dir, f'model_epoch_{epoch}.onnx'))
             # self.computing_time_calculation(epoch)
         print("Train_end")
@@ -281,12 +282,12 @@ class EstimationMy:
 if __name__ == "__main__":
     try:
         # Hyperparameters
-        batch_size = 16
-        lr = 1e-3
-        seq_len = 200
+        batch_size = 8
+        lr = 1e-4
+        seq_len = 100
         hidden = 40
         epochs = 200
-        pretrained = True
+        pretrained = False
 
         # File paths
         today = datetime.today()

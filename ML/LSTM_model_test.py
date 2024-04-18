@@ -71,10 +71,10 @@ class EstimationMy:
             self.device = torch.device('cpu')
 
         torch.cuda.set_device(self.device)
-        self.x_min_value =  np.array([-0.6, 0, 0, 0, 0, -30, -1, -2, 0])
-        self.y_min_value = np.array([-4000])
-        self.x_max_value =  np.array([0.6, 30, 30, 30, 30, 30, 1, 2, 35])
-        self.y_max_value = np.array([4000])
+        self.x_min_value =  np.array([-0.6, 0, 0, 0, 0, -30, -1, -10, 0])
+        self.y_min_value = np.array([-3000,-3000,-3000,-3000])
+        self.x_max_value =  np.array([0.6, 30, 30, 30, 30, 30, 1, 10, 35])
+        self.y_max_value = np.array([3000,3000,3000,3000])
 
     def normalization(self,data,min_val,max_val):
         # Normalize the input data
@@ -239,11 +239,11 @@ class EstimationMy:
         # Train the model for a specified number of epochs
         self.loss_log = []
         for epoch in tqdm(range(epochs)):
-            if epoch == 100:
+            if epoch == 50:
                 self.train_setting(lr=self.lr * 0.1)
-            elif epoch == 200:
+            elif epoch == 100:
                 self.train_setting(lr=self.lr * 0.1)
-            elif epoch == 300:
+            elif epoch == 150:
                 self.train_setting(lr=self.lr * 0.1)
             total_train_loss = 0
             self.model.train()
@@ -281,22 +281,22 @@ class EstimationMy:
 if __name__ == "__main__":
     try:
         # Hyperparameters
-        batch_size = 32
-        lr = 1e-4
+        batch_size = 16
+        lr = 1e-3
         seq_len = 200
-        hidden = [5,10,15,20,25,30,35,40]
-        epochs = 500
+        hidden = 80
+        epochs = 400
         pretrained = False
 
         # File paths
         today = datetime.today()
-        data_path = os.path.join('Data', 'Custom_data4')
+        data_path = os.path.join('Data', 'Data_without_Torque')
         log_dir = os.path.join('Data/ML', str(today.date()), 'log')
         pt_dir = os.path.join('Data/ML', str(today.date()), "pt")
         onnx_dir = os.path.join('Data/ML', str(today.date()), "onnx")
 
 
-        pt_path = 'Data/ML/pretrained_model/H_10_FC_1.pt'
+        pt_path = 'Data/ML/pretrained_model/H_40_FC_1.pt'
         
         if isinstance(hidden, list):
             for hidden_size in hidden:

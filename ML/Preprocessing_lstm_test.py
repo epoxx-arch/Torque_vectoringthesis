@@ -44,16 +44,19 @@ def preprocessing(input_path,output_path):
     # Create a new DataFrame for the extracted data
 
     input_data = pd.DataFrame({
-        "steering_mean": steer[:-1],
-        "motor_trq_FL": motor_trq_FL[:-1],
-        "motor_trq_FR": motor_trq_FR[:-1],
-        "motor_trq_RL": motor_trq_RL[:-1],
-        "motor_trq_RR": motor_trq_RR[:-1],
-        "ay": ay[:-1],
-        "Roll_Vel": Roll_Vel[:-1],
-        "Yaw_Vel": Yaw_Vel[:-1],
-        "Car.v" : Vel[:-1],
-        "My" : My[1:],
+        "steering_mean": steer,
+        "motor_trq_FL": motor_trq_FL,
+        "motor_trq_FR": motor_trq_FR,
+        "motor_trq_RL": motor_trq_RL,
+        "motor_trq_RR": motor_trq_RR,
+        "ay": ay,
+        "Roll_Vel": Roll_Vel,
+        "Yaw_Vel": Yaw_Vel,
+        "Car.v" : Vel,
+        "FyFL" : FyFL,
+        "FyFR" : FyFR,
+        "FyRL" : FyRL,
+        "FyRR" : FyRR
     })
 
     # Export the new DataFrame to a CSV file
@@ -63,8 +66,9 @@ def preprocessing(input_path,output_path):
 
 if __name__ == "__main__":
 
-    path = 'D:/TV/FCM_Projects_JM/FS_race/SimOutput/DESKTOP-00IBLK8/20240331'
-    output_path = 'Data/test'
+    path = 'D:/TV/FCM_Projects_JM/FS_race/SimOutput/DESKTOP-00IBLK8/sin_data'
+    output_path = 'Data/Data_test'
+    name = 'Test'
     #path = "Data/CM_data"
     #output_path = 'Data/'
     os.makedirs(output_path, exist_ok=True)
@@ -73,7 +77,7 @@ if __name__ == "__main__":
         file_name = file.split('.')
         print('Now processing :' + file_name[0])
         input_path = path + '/' + file
-        output = output_path + '/' + 'data'+ str(len(os.listdir(output_path))+1) + '.csv'
+        output = output_path + '/' + name + str(len(os.listdir(output_path))+1) + '.csv'
         preprocessing(input_path, output)
 
     print('End')
