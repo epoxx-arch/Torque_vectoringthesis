@@ -141,8 +141,8 @@ class EstimationMy:
         for idx, file in enumerate(file_list):
             input_path = data_path + '/' + file
             data = pd.read_csv(input_path)
-            y = data.pop(str(data.columns[-1])).values
-            data = data.values
+            y = data.iloc[:, -4:].values
+            data = data.iloc[:, :-4].values
             for i in range(0, len(data) - seq_len):
                 _x = data[i:i + seq_len, :]
                 _y = np.array([y[i + seq_len-1]])
@@ -181,8 +181,9 @@ class EstimationMy:
         # Initialize the LSTM model
         self.hidden_size = hidden_size
         self.layer_size = num_layers
-        self.model = EstimationLSTM(self.input_size, self.hidden_size, output_size, self.seq_len, num_layers)
-        self.check_model = EstimationLSTM(self.input_size, self.hidden_size, output_size, self.seq_len, num_layers)
+        self.output_size = output_size
+        self.model = EstimationLSTM(self.input_size, self.hidden_size, self.output_size, self.seq_len, num_layers)
+        self.check_model = EstimationLSTM(self.input_size, self.hidden_size, self.output_size, self.seq_len, num_layers)
     
         self.model.to(self.device)
         self.check_model.to('cpu')
@@ -241,9 +242,11 @@ class EstimationMy:
         for epoch in tqdm(range(epochs)):
             if epoch == 50:
                 self.train_setting(lr=self.lr * 0.1)
-            elif epoch == 100:
+            elif epoch == 200:
                 self.train_setting(lr=self.lr * 0.1)
-            elif epoch == 150:
+            elif epoch == 300:
+                self.train_setting(lr=self.lr * 0.1)
+            elif epoch == 400:
                 self.train_setting(lr=self.lr * 0.1)
             total_train_loss = 0
             self.model.train()
@@ -281,19 +284,19 @@ class EstimationMy:
 if __name__ == "__main__":
     try:
         # Hyperparameters
-        batch_size = 16
+        batch_size = 64
         lr = 1e-3
         seq_len = 200
         hidden = 80
-        epochs = 400
+        epochs = 800
         pretrained = False
 
         # File paths
         today = datetime.today()
-        data_path = os.path.join('Data', 'Data_without_Torque')
-        log_dir = os.path.join('Data/ML', str(today.date()), 'log')
-        pt_dir = os.path.join('Data/ML', str(today.date()), "pt")
-        onnx_dir = os.path.join('Data/ML', str(today.date()), "onnx")
+        data_path = os.path.join('Data', 'Data_test')
+        log_dir = os.path.join('Data/ML/Test', str(today.date()), 'log')
+        pt_dir = os.path.join('Data/ML/Test', str(today.date()), "pt")
+        onnx_dir = os.path.join('Data/ML/Test', str(today.date()), "onnx")
 
 
         pt_path = 'Data/ML/pretrained_model/H_40_FC_1.pt'
@@ -306,7 +309,7 @@ if __name__ == "__main__":
                 if pretrained ==True:
                     model.import_pt_model(pt_path,hidden_size=hidden_size)
                 else:
-                    model.model_setting(hidden_size=hidden_size)
+                    model.model_setting(hidden_size=hidden_size,output_size=4)
                 model.train_setting()
                 model.make_dir(pt_dir=pt_dir,log_dir=log_dir,onnx_dir = onnx_dir)
                 model.train(epochs)            
@@ -318,7 +321,7 @@ if __name__ == "__main__":
             if pretrained ==True:
                 model.import_pt_model(pt_path,hidden_size=hidden)
             else:
-                model.model_setting(hidden_size=hidden)
+                model.model_setting(hidden_size=hidden,output_size=4)
             model.train_setting()
             model.make_dir(pt_dir=pt_dir,log_dir=log_dir,onnx_dir = onnx_dir)
             model.train(epochs)

@@ -66,7 +66,7 @@ def preprocessing(input_path,output_path):
 
 if __name__ == "__main__":
 
-    path = 'D:/TV/FCM_Projects_JM/FS_race/SimOutput/DESKTOP-00IBLK8/sin_data'
+    path = 'D:/TV/FCM_Projects_JM/FS_race/SimOutput/DESKTOP-00IBLK8/specific_data'
     output_path = 'Data/Data_test'
     name = 'Test'
     #path = "Data/CM_data"

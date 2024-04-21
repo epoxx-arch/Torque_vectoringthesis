@@ -4,7 +4,7 @@ import os
 import pandas as pd
 
 # Define the directory path where the CSV files are located
-directory = './Data/Data_test'
+directory = './Data/concat_data'
 
 
 
