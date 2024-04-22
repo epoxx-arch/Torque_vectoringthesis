@@ -240,11 +240,11 @@ class EstimationMy:
         # Train the model for a specified number of epochs
         self.loss_log = []
         for epoch in tqdm(range(epochs)):
-            if epoch == 20:
+            if epoch == 50:
                 self.train_setting(lr=self.lr * 0.1)
-            elif epoch == 50:
+            elif epoch == 100:
                 self.train_setting(lr=self.lr * 0.1)
-            elif epoch == 70:
+            elif epoch == 200:
                 self.train_setting(lr=self.lr * 0.1)
             total_train_loss = 0
             self.model.train()
@@ -282,11 +282,11 @@ class EstimationMy:
 if __name__ == "__main__":
     try:
         # Hyperparameters
-        batch_size = 8
-        lr = 1e-4
-        seq_len = 100
-        hidden = 40
-        epochs = 200
+        batch_size = 64
+        lr = 1e-3
+        seq_len = 200
+        hidden = [10,15,20,25,30,35,40]
+        epochs = 400
         pretrained = False
 
         # File paths
