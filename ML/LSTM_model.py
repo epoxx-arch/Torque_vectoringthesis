@@ -285,7 +285,7 @@ if __name__ == "__main__":
         batch_size = 64
         lr = 1e-3
         seq_len = 200
-        hidden = [10,15,20,25,30,35,40]
+        hidden = [45,50,55,60,65,70,75,80,85,90,95,100,105,110,115,120,125]
         epochs = 400
         pretrained = False
 
