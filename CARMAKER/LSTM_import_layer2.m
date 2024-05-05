@@ -1,7 +1,6 @@
 clc; clear all
-addpath("C:\Users\User\Desktop\Code\TV\Data\ML\Test\2024-04-19\onnx\80\")
 
-Pytorch_net = importONNXNetwork("model_epoch_799.onnx","TargetNetwork","dlnetwork");
+Pytorch_net = importONNXNetwork("C:\Users\User\Desktop\Code\TV\Data\ML\2024-04-23\onnx\80\model_epoch_399.onnx","TargetNetwork","dlnetwork");
 numFeatures = 9;
 numHidden = 80;
 
@@ -12,7 +11,7 @@ Temp_lstm.InputWeights = Pytorch_net.Layers(6).InputWeights;
 Temp_lstm.RecurrentWeights = Pytorch_net.Layers(6).RecurrentWeights;
 Temp_lstm.Bias = Pytorch_net.Layers(6).Bias;
 Temp_Fully1 = fullyConnectedLayer(numHidden,"Weights",Pytorch_net.Layers(10).Weights,"Bias",Pytorch_net.Layers(10).Bias);
-Temp_Fully2 = fullyConnectedLayer(4,"Weights",Pytorch_net.Layers(11).Weights,"Bias",Pytorch_net.Layers(11).Bias);
+Temp_Fully2 = fullyConnectedLayer(1,"Weights",Pytorch_net.Layers(11).Weights,"Bias",Pytorch_net.Layers(11).Bias);
 
 
 Temp_layers = [
