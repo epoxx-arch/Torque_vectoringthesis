@@ -1,8 +1,8 @@
 clc, clear all
 % LSTM_TV = load('LSTM_Sinuns_30km_Test.mat');
 % No_TV = load('No_LSTM_sinus_30km_Test.mat');
-LSTM_TV = load('LSTM_track2.mat');
-No_TV = load('No_LSTM_track2.mat');
+LSTM_TV = load('LSTM_track1.mat');
+No_TV = load('No_LSTM_track1.mat');
 %%
 time_lstm = LSTM_TV.data{1}.Values.Time;
 time_No = No_TV.data{2}.Values.Time;
